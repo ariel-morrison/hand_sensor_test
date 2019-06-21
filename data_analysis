@@ -74,6 +74,9 @@ for path_to_zip_file in zip_list:
         print('Zip archive ' + zipfile_name + ' is unzipped.')
 
 
+## 3. Rename EDA files/event tags with sensor number
+# Every data folder contains the same files: EDA.csv, HR.csv, ACC.csv, etc. 
+# All the EDA data files need to be renamed to unique file names - timestamp + sensor number
 # zipfile_name is sensor number
 
 print("Getting EDA data from these data folders/sensor numbers:")
@@ -96,8 +99,10 @@ for idx in zip_list:
         os.rename(retval+'/'+'tags.csv', mydir+'/'+str(sensorNum)+'_tags.csv')
 
 
-
+## 4. Put all EDA and other data files into lists
+# Lists keep data in the same order that they were read in - first column is always first sensor, etc.
 # initialize empty lists to store all sensor data
+
 EDA_list = []
 HR_list = []
 tag_list = []
@@ -118,6 +123,8 @@ for dirpath, dirnames, filenames in os.walk(mydir): # goes through every file in
 print("This is the list of EDA csv files:")
 EDA_list
 
+
+## 5. Find initial timestamps and add full time record to EDA file
 
 EDA_data_list = []
 fullRecordTime = []
@@ -152,6 +159,25 @@ print("")
 print("Number of timestamps: " + str(len(EDA_data_list)))
 
 
+## 6. Convex optimization, electrodermal activity processing
+"""
+     This function implements the cvxEDA algorithm described in "cvxEDA: a
+    Convex Optimization Approach to Electrodermal Activity Processing"
+    (http://dx.doi.org/10.1109/TBME.2015.2474131).
+    Arguments:
+       y: observed EDA signal
+       delta: sampling interval (in seconds) of y
+       tau0: slow time constant of the Bateman function
+       tau1: fast time constant of the Bateman function
+       delta_knot: time between knots of the tonic spline function
+       alpha: penalization for the sparse SMNA driver
+       gamma: penalization for the tonic spline coefficients
+       solver: sparse QP solver to be used, see cvxopt.solvers.qp
+       options: solver options, see:
+                http://cvxopt.org/userguide/coneprog.html#algorithm-parameters
+                
+""""
+  
 def cvxEDA(y, delta, tau0=2., tau1=0.7, delta_knot=10., alpha=8e-4, gamma=1e-2,
            solver=None, options={'reltol':1e-9}):
 
@@ -290,10 +316,14 @@ pl.xlabel('Time (min)')
 pl.show()
 
 
+## 7. Baseline from same file (first three minutes)
+
 bl = pd.DataFrame(y[:(min_baseline*60*Fs)]) # takes first three minutes of EDA record and uses them as baseline
 bL = bl.mean()
 baseline = pd.to_numeric(bL)
 
+
+## 8. Percent difference between entire EDA record (excluding baseline) and baseline
 
 start_record = int((min_baseline+0.5)*60*Fs)
 
@@ -318,6 +348,8 @@ pd_activity2 = (activity2 - baseline)/baseline * 100
 pd_activity3 = (activity3 - baseline)/baseline * 100
 pd_activity4 = (activity4 - baseline)/baseline * 100
 
+
+## 8. Graph the percent difference between 'study' and baseline
 
 activities = [pd_activity1,pd_activity2,pd_activity3,pd_activity4]
 y_pos = [1,2,3,4]
