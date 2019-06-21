@@ -22,8 +22,7 @@ import plotly.graph_objs as go
 # 1. Working directory (mydir)
 # 2. Sampling frequency per second (Fs) --> for E4 sensors, 4 samples per second
 # 3. Time interval of recording (delta) --> for E4 sensors, samples recorded every 0.25s
-# 4. Baseline from beginning of each EDA file or recorded as separate files?
-# 5. Length of baseline in minutes (to calculate how many timesteps to take)
+# 4. Length of baseline in minutes (to calculate how many timesteps to take)
 # --> Check printed statements throughout code to make sure code is doing right thing
 
 mydir = '/Users/amorrison/Projects/handsensors/empaticadata'
