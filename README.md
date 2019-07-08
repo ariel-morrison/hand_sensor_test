@@ -10,6 +10,8 @@ User-defined inputs:
 2. Sampling frequency per second: $Fs  --  e.g., 4 (4 default for E4 sensors, integer, units samples per second)
 3. Time interval of recording: $delta  --  e.g., 0.25 (0.25 default for E4 sensors, float, units samples recorded every 0.25 seconds)
 4. Length of baseline in minutes: $min_baseline  --  e.g., 3 (integer in minutes)
+5. Preferred format for saved figures: $pref_format -- e.g., png, eps, pdf
+6. Preferred dpi (resolution) for saved figures: $pref_dpi -- e.g., 500, 1000, 2000 (1000 is a good readable resolution for png files)
 
 
 To RUN:
@@ -21,9 +23,12 @@ Example command:
 
 2) Run the script
 
-`python formattingSensorData.py $working_dir $FS $delta $min_baseline`
+`python formattingSensorData.py $working_dir $FS $delta $min_baseline $pref_format $pref_dpi`
+
 
 Example command:
 
-`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/empaticadata" 4 0.25 3`
-`python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" 4 0.25 3`
+`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/empaticadata" 4 0.25 3 png 1000`
+
+
+`python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" 4 0.25 3 eps 2000`
