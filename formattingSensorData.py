@@ -1,5 +1,5 @@
-# Script to download EDA files from Empatica website, format them by date/time, and read them into Ledalab
-# unzip downloaded files
+# Script to unzip downloaded EDA files from Empatica website,
+# analyze skin conductance data, plot data, and save output as csv
 
 # the following packages are for opening/reading files and analyzing data
 import os
@@ -18,6 +18,7 @@ import pylab as pl
 import plotly
 import plotly.plotly as py
 import plotly.graph_objs as go
+
 
 def cvxEDA(y, delta, tau0=2., tau1=0.7, delta_knot=10., alpha=8e-4, gamma=1e-2,
            solver=None, options={'reltol':1e-9}):
@@ -127,6 +128,7 @@ def cvxEDA(y, delta, tau0=2., tau1=0.7, delta_knot=10., alpha=8e-4, gamma=1e-2,
 
     return (np.array(a).ravel() for a in (r, p, t, l, d, e, obj))
 
+
 def extract_zip_format_filenames(working_dir):
     zip_list = []
     EDA_list = []
@@ -181,24 +183,25 @@ def extract_zip_format_filenames(working_dir):
 
     return zip_list, EDA_list, HR_list, tag_list
 
-def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs):
+
+def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_dpi):
     timing = pl.arange(1., len(y) + 1.) / (60 * 4) # minutes = divide by 240 = 60 seconds * 4 records/sec
     fig1 = pl.plot(timing, y) # y = total skin conductance record (phasic + tonic + noise)
     pl.setp(fig1, color='r', linewidth=0.5)
     pl.ylim(0, 0.25)
     pl.xlim(-1, max(timing) + 1)
-    pl.title('Skin conductance')
-    pl.ylabel('Raw EDA')
+    pl.ylabel('Skin conductance - total (\u03bcS)')
     pl.xlabel('Time (min)')
+    pl.savefig('fig1', format = pref_format, dpi = pref_dpi)
     pl.show()
 
     fig2 = pl.plot(timing, r) # r = phasic component
     pl.setp(fig1, color='b', linewidth=0.5)
     pl.ylim(0, 0.15)
     pl.xlim(-1, max(timing) + 1)
-    pl.title('Phasic component')
-    pl.ylabel('EDA')
+    pl.ylabel('Skin conductance - phasic component (\u03bcS)')
     pl.xlabel('Time (min)')
+    pl.savefig('fig2', format = pref_format, dpi = pref_dpi)
     pl.show()
 
 
@@ -236,9 +239,11 @@ def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs):
 
     fig3 = pl.bar(y_pos, activities, align='center', alpha=0.9)
     pl.xticks(y_pos)
-    pl.ylabel('% difference EDA - baseline')
+    pl.ylabel('Skin conductance % difference, activity - baseline')
     pl.xlabel('Activity number')
+    pl.savefig('fig3', format = pref_format, dpi = pref_dpi)
     pl.show()
+
 
 def format_and_plot_data(working_dir, Fs, delta, min_baseline):
 
@@ -298,6 +303,8 @@ def format_and_plot_data(working_dir, Fs, delta, min_baseline):
     plot_results(y, r, p, t, l, d, e, obj, Fs, min_baseline)
 
 
+
+
 if __name__=='__main__':
-    working_dir, Fs, delta, min_baseline = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4]
-    format_and_plot_data(working_dir, Fs, delta, min_baseline)
+    working_dir, Fs, delta, min_baseline, pref_format, pref_dpi = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6]
+    format_and_plot_data(working_dir, Fs, delta, min_baseline, pref_format, pref_dpi)
