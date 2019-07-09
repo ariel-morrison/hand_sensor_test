@@ -19,6 +19,7 @@ To RUN:
 1) Install requirements.txt using pip:
 
 Example command:
+
 `pip install -r requirements.txt`
 
 2) Run the script
