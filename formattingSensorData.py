@@ -186,23 +186,25 @@ def extract_zip_format_filenames(working_dir):
 
 def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_dpi):
     timing = pl.arange(1., len(y) + 1.) / (60 * 4) # minutes = divide by 240 = 60 seconds * 4 records/sec
-    fig1 = pl.plot(timing, y) # y = total skin conductance record (phasic + tonic + noise)
-    pl.setp(fig1, color='r', linewidth=0.5)
+    fig1, ax = pl.subplots( nrows=1, ncols=1 )
+    pl.plot(timing, y, color = 'r') # y = total skin conductance record (phasic + tonic + noise)
+    #pl.setp(ax, color='r', linewidth=0.5)
     pl.ylim(0, 0.25)
     pl.xlim(-1, max(timing) + 1)
     pl.ylabel('Skin conductance - total (\u03bcS)')
     pl.xlabel('Time (min)')
-    pl.savefig('fig1', format = pref_format, dpi = pref_dpi)
-    pl.show()
+    fig1.savefig('fig1', format = pref_format, dpi = pref_dpi)
+    pl.close(fig1)
 
-    fig2 = pl.plot(timing, r) # r = phasic component
-    pl.setp(fig1, color='b', linewidth=0.5)
+    fig2, ax = pl.subplots( nrows=1, ncols=1 )
+    pl.plot(timing, r, color = 'b') # r = phasic component
+    #pl.setp(fig1, color='b', linewidth=0.5)
     pl.ylim(0, 0.15)
     pl.xlim(-1, max(timing) + 1)
     pl.ylabel('Skin conductance - phasic component (\u03bcS)')
     pl.xlabel('Time (min)')
-    pl.savefig('fig2', format = pref_format, dpi = pref_dpi)
-    pl.show()
+    fig2.savefig('fig2', format = pref_format, dpi = pref_dpi)
+    pl.close(fig2)
 
 
     bl = pd.DataFrame(y[:(min_baseline * 60 * Fs)]) # takes first three minutes of EDA record and uses them as baseline
@@ -212,40 +214,90 @@ def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_d
 
     start_record = int((min_baseline + 0.5) * 60 * Fs)
 
-    activity1_timesteps = pd.DataFrame(y[start_record:(start_record + 1000)])
+    activity1_timesteps = pd.DataFrame(y[start_record:(start_record+1000)])
     activity1_mean = activity1_timesteps.mean()
-    activity1 = pd.to_numeric(activity1_mean)
+    activity1_median = activity1_timesteps.median()
+    activity1_mean_numeric = pd.to_numeric(activity1_mean)
+    activity1_median_numeric = pd.to_numeric(activity1_median)
 
-    activity2_timesteps = pd.DataFrame(y[(start_record + 1001):(start_record + 2000)])
+    activity2_timesteps = pd.DataFrame(y[(start_record+1001):(start_record+2000)])
     activity2_mean = activity2_timesteps.mean()
-    activity2 = pd.to_numeric(activity2_mean)
+    activity2_median = activity2_timesteps.median()
+    activity2_mean_numeric = pd.to_numeric(activity2_mean)
+    activity2_median_numeric = pd.to_numeric(activity2_median)
 
-    activity3_timesteps = pd.DataFrame(y[(start_record + 2001):(start_record + 3000)])
+    activity3_timesteps = pd.DataFrame(y[(start_record+2001):(start_record+3000)])
     activity3_mean = activity3_timesteps.mean()
-    activity3 = pd.to_numeric(activity3_mean)
+    activity3_median = activity3_timesteps.median()
+    activity3_mean_numeric = pd.to_numeric(activity3_mean)
+    activity3_median_numeric = pd.to_numeric(activity3_median)
 
-    activity4_timesteps = pd.DataFrame(y[(start_record + 3001):])
+    activity4_timesteps = pd.DataFrame(y[(start_record+3001):])
     activity4_mean = activity4_timesteps.mean()
-    activity4 = pd.to_numeric(activity4_mean)
+    activity4_median = activity4_timesteps.median()
+    activity4_mean_numeric = pd.to_numeric(activity4_mean)
+    activity4_median_numeric = pd.to_numeric(activity4_median)
 
-    pd_activity1 = (activity1 - baseline) / baseline * 100
-    pd_activity2 = (activity2 - baseline) / baseline * 100
-    pd_activity3 = (activity3 - baseline) / baseline * 100
-    pd_activity4 = (activity4 - baseline) / baseline * 100
+    # these are the means that are saved to csv output
+    pd_activity1 = (activity1_mean_numeric - baseline)/baseline * 100
+    pd_activity2 = (activity2_mean_numeric - baseline)/baseline * 100
+    pd_activity3 = (activity3_mean_numeric - baseline)/baseline * 100
+    pd_activity4 = (activity4_mean_numeric - baseline)/baseline * 100
 
 
-    activities = [pd_activity1.iloc[0], pd_activity2.iloc[0], pd_activity3.iloc[0], pd_activity4.iloc[0]]
+    pd_activity1_median = (activity1_median_numeric - baseline)/baseline * 100
+    pd_activity2_median = (activity2_median_numeric - baseline)/baseline * 100
+    pd_activity3_median = (activity3_median_numeric - baseline)/baseline * 100
+    pd_activity4_median = (activity4_median_numeric - baseline)/baseline * 100
+
+
+    activity_means = [pd_activity1.iloc[0] ,pd_activity2.iloc[0] ,pd_activity3.iloc[0] ,pd_activity4.iloc[0] ]
+    activity_medians = [pd_activity1_median.iloc[0] ,pd_activity2_median.iloc[0] ,pd_activity3_median.iloc[0] ,pd_activity4_median.iloc[0] ]
+    statistics_output = activity_means, activity_medians
+
     y_pos = [1,2,3,4]
-
-    fig3 = pl.bar(y_pos, activities, align='center', alpha=0.9)
+    fig3, ax = pl.subplots( nrows=1, ncols=1 )
+    pl.bar(y_pos, activity_means, align='center', alpha=0.9)
     pl.xticks(y_pos)
-    pl.ylabel('Skin conductance % difference, activity - baseline')
+    pl.ylabel('Skin conductance % difference (activity - baseline)')
     pl.xlabel('Activity number')
-    pl.savefig('fig3', format = pref_format, dpi = pref_dpi)
-    pl.show()
+
+    os.chdir(working_dir)
+    fig3.savefig('fig3', format = pref_format, dpi = pref_dpi)
+    pl.close(fig3)
+
+    fields = []
+    for i in range(1, len(activity_means)+1):
+        fields.append('Activity' + str(i))
+
+    return statistics_output, fields
+
+"""
+def get_fields(activity_means):
+    fields = []
+    for i in range(1, len(activity_means)+1):
+        fields.append('Activity' + str(i))
+
+    return fields
+"""
+
+def save_output_csv(fields, statistics_output, working_dir):
+    os.chdir(working_dir)
+
+    filename = "test_output.csv"
+
+    cols = [fields, statistics_output[0], statistics_output[1]]
+    out_df = pd.DataFrame(cols)
+
+    # transpose dataframe so each activity is its own row, statistics for each activity are own column
+    out_df = out_df.T
+    out_df.to_csv(filename, index=False, header=['Activity', 'Mean', 'Median'])
+    print("Saved output to csv file")
+
+    return filename
 
 
-def format_and_plot_data(working_dir, Fs, delta, min_baseline):
+def format_and_plot_data(working_dir, Fs, delta, min_baseline, pref_format, pref_dpi):
 
     # working_dir = '/Users/amorrison/Projects/handsensors/empaticadata'
     # Fs = 4
@@ -255,8 +307,10 @@ def format_and_plot_data(working_dir, Fs, delta, min_baseline):
         Fs = int(Fs)
         delta = float(delta)
         min_baseline = int(min_baseline)
+        pref_format = str(pref_format)
+        pref_dpi = float(pref_dpi)
     except:
-        print('FS, delta and min_baseline must be floating point numbers')
+        print('FS, delta, min_baseline, and pref_dri must be floating point numbers, pref_format must be a string')
 
     # changes to working directory
     os.chdir(working_dir)
@@ -300,7 +354,8 @@ def format_and_plot_data(working_dir, Fs, delta, min_baseline):
 
     r, p, t, l, d, e, obj = cvxEDA(y_list, 1./Fs)
 
-    plot_results(y, r, p, t, l, d, e, obj, Fs, min_baseline)
+    statistics_output, fields = plot_results(y, r, p, t, l, d, e, obj, Fs, min_baseline, pref_format, pref_dpi)
+    save_output_csv(fields, statistics_output, working_dir)
 
 
 
