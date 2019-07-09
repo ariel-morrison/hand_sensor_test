@@ -1,5 +1,4 @@
-# Script to unzip downloaded EDA files from Empatica website,
-# analyze skin conductance data, plot data, and save output as csv
+# Script to unzip downloaded EDA files from Empatica website, analyze skin conductance data, plot data, and save output as csv
 
 # the following packages are for opening/reading files and analyzing data
 import os
@@ -188,18 +187,15 @@ def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_d
     timing = pl.arange(1., len(y) + 1.) / (60 * 4) # minutes = divide by 240 = 60 seconds * 4 records/sec
     fig1, ax = pl.subplots( nrows=1, ncols=1 )
     pl.plot(timing, y, color = 'r') # y = total skin conductance record (phasic + tonic + noise)
-    #pl.setp(ax, color='r', linewidth=0.5)
-    pl.ylim(0, 0.25)
     pl.xlim(-1, max(timing) + 1)
     pl.ylabel('Skin conductance - total (\u03bcS)')
     pl.xlabel('Time (min)')
     fig1.savefig('fig1', format = pref_format, dpi = pref_dpi)
     pl.close(fig1)
 
+    ylim_top = max(r)
     fig2, ax = pl.subplots( nrows=1, ncols=1 )
     pl.plot(timing, r, color = 'b') # r = phasic component
-    #pl.setp(fig1, color='b', linewidth=0.5)
-    pl.ylim(0, 0.15)
     pl.xlim(-1, max(timing) + 1)
     pl.ylabel('Skin conductance - phasic component (\u03bcS)')
     pl.xlabel('Time (min)')
@@ -272,14 +268,7 @@ def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_d
 
     return statistics_output, fields
 
-"""
-def get_fields(activity_means):
-    fields = []
-    for i in range(1, len(activity_means)+1):
-        fields.append('Activity' + str(i))
 
-    return fields
-"""
 
 def save_output_csv(fields, statistics_output, working_dir):
     os.chdir(working_dir)
