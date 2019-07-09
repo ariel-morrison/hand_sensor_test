@@ -33,3 +33,13 @@ Example command:
 
 
 `python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" 4 0.25 3 eps 2000`
+
+3) Output:
+
+3 figures:
+- total skin conductance from hand sensors
+- phasic component of skin conductance
+- mean percent difference between activity and baseline skin conductance
+
+1 csv file with statistics:
+- mean and median percent difference between activity and baseline skin conductance for all activities
