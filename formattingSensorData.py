@@ -183,6 +183,34 @@ def extract_zip_format_filenames(working_dir):
     return zip_list, EDA_list, HR_list, tag_list
 
 
+
+def get_activity_timing(working_dir):
+    os.chdir(working_dir)
+
+    # lambda = defines anonymous functions that can't have an output but still require varied inputs
+    excel_timing = working_dir + '/' + 'test_timing.xlsx'
+    sheetname = 'exp_session'
+    print(excel_timing)
+    xcel = pd.read_excel(excel_timing, sheet_name = sheetname)
+    xcel['datetime_start'] = xcel.apply(lambda row: datetime.strptime(str(row['Year Start']) + \
+                                                                                           str(row['Month Start']).zfill(2) + \
+                                                                                           str(row['Day Start']).zfill(2) + \
+                                                                                           str(row['Hour Start']).zfill(2) + \
+                                                                                           str(row['Minute Start']).zfill(2) + \
+                                                                                           str(row['Second Start']).zfill(2), "%Y%m%d%H%M%S"), axis=1)
+    xcel['datetime_end'] = xcel.apply(lambda row: datetime.strptime(str(row['Year End']) + \
+                                                                                         str(row['Month End']).zfill(2) + \
+                                                                                         str(row['Day End']).zfill(2) + \
+                                                                                         str(row['Hour End']).zfill(2) + \
+                                                                                         str(row['Minute End']).zfill(2) + \
+                                                                                         str(row['Second End']).zfill(2), "%Y%m%d%H%M%S"), axis=1)
+
+    xcel.apply(lambda row : EDA_data_df[(EDA_data_df['timestamp']>=row['datetime_start'])&(EDA_data_df['timestamp']<row['datetime_end'])], axis=1)
+
+    return xcel
+
+
+    
 def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_dpi):
     timing = pl.arange(1., len(y) + 1.) / (60 * 4) # minutes = divide by 240 = 60 seconds * 4 records/sec
     fig1, ax = pl.subplots( nrows=1, ncols=1 )
