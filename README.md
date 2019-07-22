@@ -31,7 +31,7 @@ Example command:
 
 Example command:
 
-`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/empaticadata" study_timing.xlsx sheetname 4 0.25 3 png 1000`
+`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/empaticadata" test_timing.xlsx exp_session 4 0.25 3 png 1000`
 
 
 `python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" study_timing.xls sheetname 4 0.25 3 eps 2000`
