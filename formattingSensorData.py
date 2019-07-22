@@ -11,6 +11,10 @@ import cvxopt as cv
 import cvxopt.solvers
 import statistics
 from statistics import mean
+import datetime
+from datetime import datetime
+import time
+import csv
 
 # the following packages are for plotting
 import pylab as pl
@@ -129,6 +133,20 @@ def cvxEDA(y, delta, tau0=2., tau1=0.7, delta_knot=10., alpha=8e-4, gamma=1e-2,
 
 
 def extract_zip_format_filenames(working_dir):
+    """
+    Input: working directory (working_dir) where all data are downloaded from Empatica website.
+
+    Goal: move all data from downloaded zip archives into working directory
+
+    What it does: Searches working_dir and all subdirectories for .zip archives, unzips all zipped archives,
+    extracts the sensor name and date (first 10 digits of file name) as 'zipfile_name,' prints
+    the sensor number as a check, and then pulls out the EDA, HR, and tags.csv files from each archive.
+    All .csv files are extracted to the working_dir and renamed with the sensor name/date.
+    E.g., 1523940183_A0108B_EDA.csv, 1523940183_A0108B_HR.csv...
+    All EDA, HR, tag files are appended to lists when they're extracted to the working_dir, so the
+    rest of the functions read data out of the lists and keep files in the same order.
+    """
+
     zip_list = []
     EDA_list = []
     HR_list = []
@@ -184,14 +202,27 @@ def extract_zip_format_filenames(working_dir):
 
 
 
-def get_activity_timing(working_dir):
+def get_activity_timing(working_dir, timing_xcel, sheetname):
+    """
+    Input: working directory (working_dir) where all data are downloaded from Empatica website;
+            spreadsheet (timing_xcel) where all component timing is recorded (see example);
+            sheet name in spreadsheet (sheetname) where all component timing is recorded
+
+    Goal: Find data within specific date/time ranges
+
+    What it does: Opens the spreadsheet where all component timing is recorded, reads through
+    each row of the starting time ('datetime_start') and creates a YYYYMMDDHHMMSS timestamp,
+    reads through each row of the ending time ('datetime_end') and creates a YYYYMMDDHHMMSS timestamp,
+    then reads through every timestamp of the EDA dataframe to find the skin conductance values that fall
+    within the start and end time of each component.
+    """
+
     os.chdir(working_dir)
 
     # lambda = defines anonymous functions that can't have an output but still require varied inputs
-    excel_timing = working_dir + '/' + 'test_timing.xlsx'
-    sheetname = 'exp_session'
+    excel_timing = working_dir + '/' + str(timing_xcel)
     print(excel_timing)
-    xcel = pd.read_excel(excel_timing, sheet_name = sheetname)
+    xcel = pd.read_excel(excel_timing, sheet_name = str(sheetname))
     xcel['datetime_start'] = xcel.apply(lambda row: datetime.strptime(str(row['Year Start']) + \
                                                                                            str(row['Month Start']).zfill(2) + \
                                                                                            str(row['Day Start']).zfill(2) + \
@@ -210,28 +241,55 @@ def get_activity_timing(working_dir):
     return xcel
 
 
-    
+
 def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_dpi):
-    timing = pl.arange(1., len(y) + 1.) / (60 * 4) # minutes = divide by 240 = 60 seconds * 4 records/sec
+    """
+    Input: for plotting an individual's data - skin conductance dataframe (y), phasic/tonic components (r/t),
+    coefficients of tonic spline (l), offset and slope of the linear drift term (d), model residuals (e), value
+    of objective function being minimized (obj)
+    Length of baseline in minutes (min_baseline), sampling frequency per second (Fs), preferred figure format (pref_format),
+    preferred figure resolution (pref_dpi)
+
+    Goal: To produce figures and save them to working directory
+
+    What it does: Plots line graphs of an individual's total, phasic, and tonic components of skin conductance
+    against minutes. Calculates percent difference in mean skin conductance between an activity and baseline, plots
+    bar graph for percent difference for each activity.
+    """
+
+    timing = pl.arange(1., len(y) + 1.) / (60 * Fs) # minutes = divide by 240 = 60 seconds * 4 records/sec
+
+# plotting totoal conductance (phasic + tonic + noise)
     fig1, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.plot(timing, y, color = 'r') # y = total skin conductance record (phasic + tonic + noise)
+    pl.plot(timing, y, color = 'r')
     pl.xlim(-1, max(timing) + 1)
     pl.ylabel('Skin conductance - total (\u03bcS)')
     pl.xlabel('Time (min)')
-    fig1.savefig('fig1', format = pref_format, dpi = pref_dpi)
+    fig1.savefig('total_conductance', format = pref_format, dpi = pref_dpi)
     pl.close(fig1)
 
+# plotting phasic component of skin conductance
     ylim_top = max(r)
     fig2, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.plot(timing, r, color = 'b') # r = phasic component
+    pl.plot(timing, r, color = 'b')
     pl.xlim(-1, max(timing) + 1)
     pl.ylabel('Skin conductance - phasic component (\u03bcS)')
     pl.xlabel('Time (min)')
-    fig2.savefig('fig2', format = pref_format, dpi = pref_dpi)
+    fig2.savefig('phasic_component', format = pref_format, dpi = pref_dpi)
     pl.close(fig2)
 
+# plotting tonic component of skin conductance
+    ylim_top = max(t)
+    fig3, ax = pl.subplots( nrows=1, ncols=1 )
+    pl.plot(timing, t, color = 'g')
+    pl.xlim(-1, max(timing) + 1)
+    pl.ylabel('Skin conductance - tonic component (\u03bcS)')
+    pl.xlabel('Time (min)')
+    fig3.savefig('tonic_component', format = pref_format, dpi = pref_dpi)
+    pl.close(fig3)
 
-    bl = pd.DataFrame(y[:(min_baseline * 60 * Fs)]) # takes first three minutes of EDA record and uses them as baseline
+# takes first three minutes of skin conductance record and uses them as baseline
+    bl = pd.DataFrame(y[:(min_baseline * 60 * Fs)])
     bL = bl.mean()
     baseline = pd.to_numeric(bL)
 
@@ -280,15 +338,15 @@ def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_d
     statistics_output = activity_means, activity_medians
 
     y_pos = [1,2,3,4]
-    fig3, ax = pl.subplots( nrows=1, ncols=1 )
+    fig4, ax = pl.subplots( nrows=1, ncols=1 )
     pl.bar(y_pos, activity_means, align='center', alpha=0.9)
     pl.xticks(y_pos)
     pl.ylabel('Skin conductance % difference (activity - baseline)')
     pl.xlabel('Activity number')
 
     os.chdir(working_dir)
-    fig3.savefig('fig3', format = pref_format, dpi = pref_dpi)
-    pl.close(fig3)
+    fig4.savefig('activity_means', format = pref_format, dpi = pref_dpi)
+    pl.close(fig4)
 
     fields = []
     for i in range(1, len(activity_means)+1):
@@ -299,9 +357,21 @@ def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_d
 
 
 def save_output_csv(fields, statistics_output, working_dir):
+    """
+    Input: Activity names ('fields'), list of mean and median percent differences between baseline and activity
+    skin conductance ('statistics_output'), and working directory ('working_dir')
+
+    Goal: Save statistics as .csv file
+
+    What it does: Creates a .csv file with one column for each statistic (e.g., mean, median, etc.)
+    Each row is the statistics output for each activity (i.e., Row 1 is for the first activity)
+    .csv file will be saved to working directory
+    """
+
     os.chdir(working_dir)
 
-    filename = "test_output.csv"
+    # can change filename if you want
+    filename = "skin_conductance_statistics.csv"
 
     cols = [fields, statistics_output[0], statistics_output[1]]
     out_df = pd.DataFrame(cols)
@@ -314,20 +384,24 @@ def save_output_csv(fields, statistics_output, working_dir):
     return filename
 
 
-def format_and_plot_data(working_dir, Fs, delta, min_baseline, pref_format, pref_dpi):
+def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, min_baseline, pref_format, pref_dpi):
+    """
+    Goal: Format all data downloaded from empatica website, plot data, and save statistics
 
-    # working_dir = '/Users/amorrison/Projects/handsensors/empaticadata'
-    # Fs = 4
-    # delta = 0.25
-    # min_baseline = 3
+    What it does: Changes to working directory and runs all above functions in one go
+    Produces the four figures and statistics .csv file
+    """
+
     try:
+        timing_xcel = str(timing_xcel)
+        sheetname = str(sheetname)
         Fs = int(Fs)
         delta = float(delta)
         min_baseline = int(min_baseline)
         pref_format = str(pref_format)
         pref_dpi = float(pref_dpi)
     except:
-        print('FS, delta, min_baseline, and pref_dri must be floating point numbers, pref_format must be a string')
+        print('FS, delta, min_baseline, and pref_dri must be floating point numbers, timing_xcel, sheetname, pref_format must be strings')
 
     # changes to working directory
     os.chdir(working_dir)
@@ -337,8 +411,7 @@ def format_and_plot_data(working_dir, Fs, delta, min_baseline, pref_format, pref
     print(os.getcwd())
 
     zip_list, EDA_list, HR_list, tag_list = extract_zip_format_filenames(working_dir)
-
-    print('Parsed ' + str(len(zip_list)) + ' zip archives: ')
+    print('Parsed ' + str(len(zip_list)) + ' zip archives ')
 
     print("Getting EDA data from these data folders/sensor numbers:")
 
@@ -348,8 +421,9 @@ def format_and_plot_data(working_dir, Fs, delta, min_baseline, pref_format, pref
 
     for EDA_file in EDA_list:
         print(EDA_file)
+
         # 1. read EDA.csv file
-        eda_df = pd.read_csv(EDA_file, names=['timesteps'], header=3)
+        eda_df = pd.read_csv(EDA_file, header=2, names=['EDA_Values'])
         # 2. append all EDA data into single list, separate columns
         EDA_dataframe_list.append(eda_df)
 
@@ -365,9 +439,26 @@ def format_and_plot_data(working_dir, Fs, delta, min_baseline, pref_format, pref
 
     print("Number of timestamps: " + str(len(EDA_dataframe_list)))
 
+
+    for idx, data in enumerate(EDA_dataframe_list):
+            fullRecordTime = []
+            for data_idx in range(len(data)):
+                fullRecordTime.append(data_idx * 0.25)
+
+            fullRecordTime = [datetime.fromtimestamp(x + initTimestamp) for x in fullRecordTime]
+
+            data['timestamp'] = fullRecordTime
+
+            EDA_dataframe_list[idx] = data
+
+
+    len(EDA_dataframe_list)
+    EDA_data_df = pd.concat(EDA_dataframe_list,keys=[os.path.basename(name) for name in EDA_list])
+
+
     #extract timesteps column
-    y = EDA_dataframe_list[0]
-    y_list = list(y['timesteps'])
+    y = EDA_data_df.iloc[0:len(EDA_dataframe_list[0])]["EDA_Values"] #EDA_dataframe_list[0]
+    y_list = list(y)
 
     r, p, t, l, d, e, obj = cvxEDA(y_list, 1./Fs)
 
@@ -378,5 +469,5 @@ def format_and_plot_data(working_dir, Fs, delta, min_baseline, pref_format, pref
 
 
 if __name__=='__main__':
-    working_dir, Fs, delta, min_baseline, pref_format, pref_dpi = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6]
-    format_and_plot_data(working_dir, Fs, delta, min_baseline, pref_format, pref_dpi)
+    working_dir, timing_xcel, sheetname, Fs, delta, min_baseline, pref_format, pref_dpi = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8]
+    format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, min_baseline, pref_format, pref_dpi)
