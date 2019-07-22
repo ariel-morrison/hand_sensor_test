@@ -1,11 +1,10 @@
 
-
 # "Test" repository for simple hand sensor data analysis
 ### Written by Ariel Morrison, University of Colorado/Cooperative Institute for Research in Environmental Sciences, ariel dot morrison at colorado dot edu
 
-**Description: This code performs a simple continuous decomposition analysis on electrodermal activity data downloaded from an Empatica E4 sensor.**
+*Description: This code performs a simple continuous decomposition analysis on electrodermal activity data downloaded from an Empatica E4 sensor.*
 
-User-defined inputs:
+**User-defined inputs:**
 1. Working directory: $working_dir  --  e.g., "/Users/amorrison/Projects/hand_sensor_test/empaticadata" (put it in quotes) - this is where all downloaded zip archives are stored and where all output will be saved
 2. Spreadsheet with component timing, including file extension: $timing_xcel -- e.g., study_timing.xlsx, study_timing.xls
 3. Sheet name in $timing_xcel: $sheetname -- e.g., sheetname
@@ -16,7 +15,7 @@ User-defined inputs:
 8. Preferred dpi (resolution) for saved figures: $pref_dpi -- e.g., 500, 1000, 2000 (1000 is a good readable resolution for png files)
 
 
-To RUN:
+**To RUN:**
 
 1) Install requirements.txt using pip:
 
@@ -36,12 +35,14 @@ Example command:
 
 `python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" study_timing.xls sheetname 4 0.25 3 eps 2000`
 
-3) Output:
 
-3 figures:
-- total skin conductance from hand sensors
-- phasic component of skin conductance
-- mean percent difference between activity and baseline skin conductance
+**Output saved to working directory:**
+
+4 figures:
+- total skin conductance from hand sensors (line)
+- phasic component of skin conductance (line)
+- tonic component of skin conductance (line)
+- mean percent difference between activity and baseline skin conductance (bar/column)
 
 1 csv file with statistics:
 - mean and median percent difference between activity and baseline skin conductance for all activities
