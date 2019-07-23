@@ -237,7 +237,7 @@ def get_activity_timing(working_dir, timing_xcel, sheetname):
                                                                                          str(row['Second End']).zfill(2), "%Y%m%d%H%M%S"), axis=1)
 
     xcel.apply(lambda row : EDA_data_df[(EDA_data_df['timestamp']>=row['datetime_start'])&(EDA_data_df['timestamp']<row['datetime_end'])], axis=1)
-
+    
     return xcel
 
 
