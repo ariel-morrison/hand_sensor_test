@@ -252,6 +252,9 @@ def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_d
     What it does: Plots line graphs of an individual's total, phasic, and tonic components of skin conductance
     against minutes. Calculates percent difference in mean skin conductance between an activity and baseline, plots
     bar graph for percent difference for each activity.
+
+    NOTE: get_activity_timing will likely be called here --> need to get EDA means for each activity, calculate
+    percent difference against baseline conductance (first activity), and then plot those
     """
 
     timing = pl.arange(1., len(y) + 1.) / (60 * Fs) # minutes = divide by 240 = 60 seconds * 4 records/sec
