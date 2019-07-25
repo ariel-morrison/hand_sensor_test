@@ -59,9 +59,7 @@ def cvxEDA(y, delta, tau0=2., tau1=0.7, delta_knot=10., alpha=8e-4, gamma=1e-2,
 
 
     n = len(y)
-    print(n)
     y = cv.matrix(y)
-    #print(y)
 
     # bateman ARMA model
     a1 = 1./min(tau1, tau0) # a1 > a0
@@ -175,7 +173,6 @@ def extract_zip_format_filenames(working_dir):
                     print('Zip archive ' + zipfile_name + ' is unzipped.')
 
                 sensorNum = path_to_zip_file[-21:-4]
-                print('Sensor num: ' + sensorNum)
 
                 # Check current working directory.
                 working_sub_dir = os.path.join(working_dir, sensorNum)
@@ -237,7 +234,7 @@ def get_activity_timing(working_dir, timing_xcel, sheetname):
                                                                                          str(row['Second End']).zfill(2), "%Y%m%d%H%M%S"), axis=1)
 
     xcel.apply(lambda row : EDA_data_df[(EDA_data_df['timestamp']>=row['datetime_start'])&(EDA_data_df['timestamp']<row['datetime_end'])], axis=1)
-    
+
     return xcel
 
 
@@ -288,6 +285,7 @@ def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_d
     fig3.savefig('tonic_component', format = pref_format, dpi = pref_dpi)
     pl.close(fig3)
 
+
 # takes first three minutes of skin conductance record and uses them as baseline
     bl = pd.DataFrame(y[:(min_baseline * 60 * Fs)])
     bL = bl.mean()
@@ -296,6 +294,8 @@ def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_d
 
     start_record = int((min_baseline + 0.5) * 60 * Fs)
 
+# this is where get_activity_timing will be called
+# need to calculate EDA mean for each activity, compare it to baseline (first activity)
     activity1_timesteps = pd.DataFrame(y[start_record:(start_record+1000)])
     activity1_mean = activity1_timesteps.mean()
     activity1_median = activity1_timesteps.median()
@@ -401,7 +401,7 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, min_bas
         pref_format = str(pref_format)
         pref_dpi = float(pref_dpi)
     except:
-        print('FS, delta, min_baseline, and pref_dri must be floating point numbers, timing_xcel, sheetname, pref_format must be strings')
+        print('Fs, delta, min_baseline, and pref_dri must be floating point numbers, timing_xcel, sheetname, pref_format must be strings')
 
     # changes to working directory
     os.chdir(working_dir)
@@ -409,9 +409,11 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, min_bas
     # check that we're in the right directory
     print("Is this your working directory?")
     print(os.getcwd())
+    print(" ")
 
     zip_list, EDA_list, HR_list, tag_list = extract_zip_format_filenames(working_dir)
     print('Parsed ' + str(len(zip_list)) + ' zip archives ')
+    print(" ")
 
     print("Getting EDA data from these data folders/sensor numbers:")
 
@@ -454,16 +456,24 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, min_bas
 
     len(EDA_dataframe_list)
     EDA_data_df = pd.concat(EDA_dataframe_list,keys=[os.path.basename(name) for name in EDA_list])
+    EDA_data_df.keys()
+    print(" ")
+    print(EDA_data_df)
+
+
+    # save conductance to csv file
+    export_csv = EDA_data_df.to_csv ((working_dir + '/' + 'raw_skin_conductance.csv'), index = None, header=True)
 
 
     #extract timesteps column
-    y = EDA_data_df.iloc[0:len(EDA_dataframe_list[0])]["EDA_Values"] #EDA_dataframe_list[0]
+    y = EDA_data_df.iloc[0:len(EDA_dataframe_list[0])]["EDA_Values"]
     y_list = list(y)
 
     r, p, t, l, d, e, obj = cvxEDA(y_list, 1./Fs)
 
     statistics_output, fields = plot_results(y, r, p, t, l, d, e, obj, Fs, min_baseline, pref_format, pref_dpi)
     save_output_csv(fields, statistics_output, working_dir)
+
 
 
 
