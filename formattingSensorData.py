@@ -308,7 +308,6 @@ def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_d
     pl.bar(list(y_pos.keys()), percent_diff_means, align='center', alpha=0.9)
     pl.xticks(list(y_pos.keys()), list(y_pos.values()))
     pl.ylabel('Skin conductance % difference (activity - baseline)')
-    pl.xlabel('Activity number')
 
     os.chdir(working_dir)
     fig4.savefig('activity_means', format = pref_format, dpi = pref_dpi)
