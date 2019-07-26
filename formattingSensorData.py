@@ -218,7 +218,7 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df):
 
     # lambda = defines anonymous functions that can only produce one line of output but still require varied inputs
     excel_timing = os.path.join(working_dir, str(timing_xcel))
-    # print(excel_timing)
+
     xcel = pd.read_excel(excel_timing, sheet_name = str(sheetname))
     xcel['datetime_start'] = xcel.apply(lambda row: datetime.strptime(str(row['Year Start']) + \
                                                                                            str(row['Month Start']).zfill(2) + \
@@ -235,6 +235,7 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df):
 
     x_out = xcel.apply(lambda row : EDA_data_df[(EDA_data_df['timestamp']>=row['datetime_start'])&(EDA_data_df['timestamp']<row['datetime_end'])].assign(activity=row['Activity Start']), axis=1)
     activity_mean = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['EDA_Values'].mean()
+
     return activity_mean
 
 
@@ -252,14 +253,11 @@ def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_d
     What it does: Plots line graphs of an individual's total, phasic, and tonic components of skin conductance
     against minutes. Calculates percent difference in mean skin conductance between an activity and baseline, plots
     bar graph for percent difference for each activity.
-
-    NOTE: get_activity_timing will likely be called here --> need to get EDA means for each activity, calculate
-    percent difference against baseline conductance (first activity), and then plot those
     """
 
     timing = pl.arange(1., len(y) + 1.) / (60 * Fs) # minutes = divide by 240 = 60 seconds * 4 records/sec
 
-# plotting totoal conductance (phasic + tonic + noise)
+# plotting total conductance (phasic + tonic + noise)
     fig1, ax = pl.subplots( nrows=1, ncols=1 )
     pl.plot(timing, y, color = 'r')
     pl.xlim(-1, max(timing) + 1)
@@ -288,63 +286,30 @@ def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_d
     fig3.savefig('tonic_component', format = pref_format, dpi = pref_dpi)
     pl.close(fig3)
 
+# get timing and EDA for each activity
+    activity_mean = get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df)
 
-# takes first three minutes of skin conductance record and uses them as baseline
-    bl = pd.DataFrame(y[:(min_baseline * 60 * Fs)])
-    bL = bl.mean()
-    baseline = pd.to_numeric(bL)
+    activity_mean = activity_mean.reset_index()
+    #print(activity_mean)
 
+    baselines = activity_mean[activity_mean['activity'] == "Baseline"][["level_0", "EDA_Values"]]
+    baselines = baselines.rename(columns = {"level_0":"sensor_id","EDA_Values":"eda_baseline"})
+    activity_mean_no_bl = activity_mean[activity_mean['activity'] != "Baseline"]
+    activity_mean_no_bl = activity_mean_no_bl.rename(columns = {"level_0":"sensor_id","EDA_Values":"eda_means"})
+    activity_mean_merged = activity_mean_no_bl.merge(baselines, on = ["sensor_id"])
+    #print(activity_mean_merged)
 
-    start_record = int((min_baseline + 0.5) * 60 * Fs)
+    percent_diff_means = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["eda_means"] - row["eda_baseline"])/row["eda_baseline"]).mean()*100)
+    percent_diff_medians = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["eda_means"] - row["eda_baseline"])/row["eda_baseline"]).median()*100)
 
-# this is where get_activity_timing will be called
-    get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df)
+    print(percent_diff_means)
+    print(activity_mean_no_bl['activity'])
 
-# need to calculate EDA mean for each activity, compare it to baseline (first activity)
-    activity1_timesteps = pd.DataFrame(y[start_record:(start_record+1000)])
-    activity1_mean = activity1_timesteps.mean()
-    activity1_median = activity1_timesteps.median()
-    activity1_mean_numeric = pd.to_numeric(activity1_mean)
-    activity1_median_numeric = pd.to_numeric(activity1_median)
+    statistics_output = percent_diff_means, percent_diff_medians
 
-    activity2_timesteps = pd.DataFrame(y[(start_record+1001):(start_record+2000)])
-    activity2_mean = activity2_timesteps.mean()
-    activity2_median = activity2_timesteps.median()
-    activity2_mean_numeric = pd.to_numeric(activity2_mean)
-    activity2_median_numeric = pd.to_numeric(activity2_median)
-
-    activity3_timesteps = pd.DataFrame(y[(start_record+2001):(start_record+3000)])
-    activity3_mean = activity3_timesteps.mean()
-    activity3_median = activity3_timesteps.median()
-    activity3_mean_numeric = pd.to_numeric(activity3_mean)
-    activity3_median_numeric = pd.to_numeric(activity3_median)
-
-    activity4_timesteps = pd.DataFrame(y[(start_record+3001):])
-    activity4_mean = activity4_timesteps.mean()
-    activity4_median = activity4_timesteps.median()
-    activity4_mean_numeric = pd.to_numeric(activity4_mean)
-    activity4_median_numeric = pd.to_numeric(activity4_median)
-
-    # these are the means that are saved to csv output
-    pd_activity1 = (activity1_mean_numeric - baseline)/baseline * 100
-    pd_activity2 = (activity2_mean_numeric - baseline)/baseline * 100
-    pd_activity3 = (activity3_mean_numeric - baseline)/baseline * 100
-    pd_activity4 = (activity4_mean_numeric - baseline)/baseline * 100
-
-
-    pd_activity1_median = (activity1_median_numeric - baseline)/baseline * 100
-    pd_activity2_median = (activity2_median_numeric - baseline)/baseline * 100
-    pd_activity3_median = (activity3_median_numeric - baseline)/baseline * 100
-    pd_activity4_median = (activity4_median_numeric - baseline)/baseline * 100
-
-
-    activity_means = [pd_activity1.iloc[0] ,pd_activity2.iloc[0] ,pd_activity3.iloc[0] ,pd_activity4.iloc[0] ]
-    activity_medians = [pd_activity1_median.iloc[0] ,pd_activity2_median.iloc[0] ,pd_activity3_median.iloc[0] ,pd_activity4_median.iloc[0] ]
-    statistics_output = activity_means, activity_medians
-
-    y_pos = [1,2,3,4]
+    y_pos = range(1, (len(percent_diff_means)+1), 1)
     fig4, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.bar(y_pos, activity_means, align='center', alpha=0.9)
+    pl.bar(y_pos, percent_diff_means, align='center', alpha=0.9)
     pl.xticks(y_pos)
     pl.ylabel('Skin conductance % difference (activity - baseline)')
     pl.xlabel('Activity number')
@@ -354,7 +319,7 @@ def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_d
     pl.close(fig4)
 
     fields = []
-    for i in range(1, len(activity_means)+1):
+    for i in range(1, len(percent_diff_means)+1):
         fields.append('Activity' + str(i))
 
     return statistics_output, fields
@@ -412,14 +377,13 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, min_bas
     os.chdir(working_dir)
 
     # check that we're in the right directory
-    # print("Is this your working directory?")
-    # print(os.getcwd())
-    # print(" ")
+    print("Is this your working directory?")
+    print(os.getcwd())
+    print(" ")
 
     zip_list, EDA_list, HR_list, tag_list = extract_zip_format_filenames(working_dir)
-    # print('Parsed ' + str(len(zip_list)) + ' zip archives ')
-    # print(" ")
-    #
+    print('Parsed ' + str(len(zip_list)) + ' zip archives ')
+    print(" ")
     # print("Getting EDA data from these data folders/sensor numbers:")
 
     EDA_dataframe_list = []
@@ -444,8 +408,6 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, min_bas
         if checkTimestampLength != 10:
             raise Exception('Error: not enough digits in timestamp')
 
-    # print("Number of timestamps: " + str(len(EDA_dataframe_list)))
-
 
     for idx, data in enumerate(EDA_dataframe_list):
             fullRecordTime = []
@@ -462,8 +424,6 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, min_bas
     len(EDA_dataframe_list)
     EDA_data_df = pd.concat(EDA_dataframe_list,keys=[os.path.basename(name) for name in EDA_list])
     EDA_data_df.keys()
-    # print(" ")
-    # print(EDA_data_df)
 
 
     # save conductance to csv file
@@ -478,7 +438,6 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, min_bas
 
     statistics_output, fields = plot_results(y, r, p, t, l, d, e, obj, Fs, min_baseline, pref_format, pref_dpi, EDA_data_df)
     save_output_csv(fields, statistics_output, working_dir)
-
 
 
 
