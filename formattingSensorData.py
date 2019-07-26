@@ -169,8 +169,8 @@ def extract_zip_format_filenames(working_dir):
                     zip_ref.close()
 
                 # if the unzipped folder already exists, skip the unzipping process
-                if os.path.exists(zipfile_name):
-                    print('Zip archive ' + zipfile_name + ' is unzipped.')
+                # if os.path.exists(zipfile_name):
+                #     print('Zip archive ' + zipfile_name + ' is unzipped.')
 
                 sensorNum = path_to_zip_file[-21:-4]
 
@@ -199,7 +199,7 @@ def extract_zip_format_filenames(working_dir):
 
 
 
-def get_activity_timing(working_dir, timing_xcel, sheetname):
+def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df):
     """
     Input: working directory (working_dir) where all data are downloaded from Empatica website;
             spreadsheet (timing_xcel) where all component timing is recorded (see example);
@@ -216,9 +216,9 @@ def get_activity_timing(working_dir, timing_xcel, sheetname):
 
     os.chdir(working_dir)
 
-    # lambda = defines anonymous functions that can't have an output but still require varied inputs
-    excel_timing = working_dir + '/' + str(timing_xcel)
-    print(excel_timing)
+    # lambda = defines anonymous functions that can only produce one line of output but still require varied inputs
+    excel_timing = os.path.join(working_dir, str(timing_xcel))
+    # print(excel_timing)
     xcel = pd.read_excel(excel_timing, sheet_name = str(sheetname))
     xcel['datetime_start'] = xcel.apply(lambda row: datetime.strptime(str(row['Year Start']) + \
                                                                                            str(row['Month Start']).zfill(2) + \
@@ -233,13 +233,13 @@ def get_activity_timing(working_dir, timing_xcel, sheetname):
                                                                                          str(row['Minute End']).zfill(2) + \
                                                                                          str(row['Second End']).zfill(2), "%Y%m%d%H%M%S"), axis=1)
 
-    xcel.apply(lambda row : EDA_data_df[(EDA_data_df['timestamp']>=row['datetime_start'])&(EDA_data_df['timestamp']<row['datetime_end'])], axis=1)
+    x_out = xcel.apply(lambda row : EDA_data_df[(EDA_data_df['timestamp']>=row['datetime_start'])&(EDA_data_df['timestamp']<row['datetime_end'])].assign(activity=row['Activity Start']), axis=1)
+    activity_mean = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['EDA_Values'].mean()
+    return activity_mean
 
-    return xcel
 
 
-
-def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_dpi):
+def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_dpi, EDA_data_df):
     """
     Input: for plotting an individual's data - skin conductance dataframe (y), phasic/tonic components (r/t),
     coefficients of tonic spline (l), offset and slope of the linear drift term (d), model residuals (e), value
@@ -298,6 +298,8 @@ def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_d
     start_record = int((min_baseline + 0.5) * 60 * Fs)
 
 # this is where get_activity_timing will be called
+    get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df)
+
 # need to calculate EDA mean for each activity, compare it to baseline (first activity)
     activity1_timesteps = pd.DataFrame(y[start_record:(start_record+1000)])
     activity1_mean = activity1_timesteps.mean()
@@ -410,22 +412,22 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, min_bas
     os.chdir(working_dir)
 
     # check that we're in the right directory
-    print("Is this your working directory?")
-    print(os.getcwd())
-    print(" ")
+    # print("Is this your working directory?")
+    # print(os.getcwd())
+    # print(" ")
 
     zip_list, EDA_list, HR_list, tag_list = extract_zip_format_filenames(working_dir)
-    print('Parsed ' + str(len(zip_list)) + ' zip archives ')
-    print(" ")
-
-    print("Getting EDA data from these data folders/sensor numbers:")
+    # print('Parsed ' + str(len(zip_list)) + ' zip archives ')
+    # print(" ")
+    #
+    # print("Getting EDA data from these data folders/sensor numbers:")
 
     EDA_dataframe_list = []
     fullRecordTime = []
     idx = 0
 
     for EDA_file in EDA_list:
-        print(EDA_file)
+        # print(EDA_file)
 
         # 1. read EDA.csv file
         eda_df = pd.read_csv(EDA_file, header=2, names=['EDA_Values'])
@@ -442,7 +444,7 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, min_bas
         if checkTimestampLength != 10:
             raise Exception('Error: not enough digits in timestamp')
 
-    print("Number of timestamps: " + str(len(EDA_dataframe_list)))
+    # print("Number of timestamps: " + str(len(EDA_dataframe_list)))
 
 
     for idx, data in enumerate(EDA_dataframe_list):
@@ -460,8 +462,8 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, min_bas
     len(EDA_dataframe_list)
     EDA_data_df = pd.concat(EDA_dataframe_list,keys=[os.path.basename(name) for name in EDA_list])
     EDA_data_df.keys()
-    print(" ")
-    print(EDA_data_df)
+    # print(" ")
+    # print(EDA_data_df)
 
 
     # save conductance to csv file
@@ -474,7 +476,7 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, min_bas
 
     r, p, t, l, d, e, obj = cvxEDA(y_list, 1./Fs)
 
-    statistics_output, fields = plot_results(y, r, p, t, l, d, e, obj, Fs, min_baseline, pref_format, pref_dpi)
+    statistics_output, fields = plot_results(y, r, p, t, l, d, e, obj, Fs, min_baseline, pref_format, pref_dpi, EDA_data_df)
     save_output_csv(fields, statistics_output, working_dir)
 
 
