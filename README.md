@@ -30,7 +30,7 @@ Example command:
 
 Example command:
 
-`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/empaticadata" test_timing.xlsx exp_session 4 0.25 3 png 1000`
+`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/empaticadata" timing_for_components.xlsx exp_session 4 0.25 3 png 1000`
 
 
 `python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" test_timing.xlsx exp_session 4 0.25 3 eps 2000`
@@ -42,9 +42,11 @@ Example command:
 - total skin conductance from hand sensors (line)
 - phasic component of skin conductance (line)
 - tonic component of skin conductance (line)
+
 *The 3 above figures are only made for one sensor at a time - i.e., there is no averaging. They are snapshots of one sensor's data.*
 
 - mean percent difference between activity and baseline skin conductance (bar/column)
+
 *The above figure is the average across all sensors.*
 
 
