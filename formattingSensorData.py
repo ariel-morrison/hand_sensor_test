@@ -290,27 +290,23 @@ def plot_results(y, r, p, t, l, d, e, obj, min_baseline, Fs, pref_format, pref_d
     activity_mean = get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df)
 
     activity_mean = activity_mean.reset_index()
-    #print(activity_mean)
 
     baselines = activity_mean[activity_mean['activity'] == "Baseline"][["level_0", "EDA_Values"]]
     baselines = baselines.rename(columns = {"level_0":"sensor_id","EDA_Values":"eda_baseline"})
     activity_mean_no_bl = activity_mean[activity_mean['activity'] != "Baseline"]
     activity_mean_no_bl = activity_mean_no_bl.rename(columns = {"level_0":"sensor_id","EDA_Values":"eda_means"})
     activity_mean_merged = activity_mean_no_bl.merge(baselines, on = ["sensor_id"])
-    #print(activity_mean_merged)
 
     percent_diff_means = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["eda_means"] - row["eda_baseline"])/row["eda_baseline"]).mean()*100)
     percent_diff_medians = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["eda_means"] - row["eda_baseline"])/row["eda_baseline"]).median()*100)
 
-    print(percent_diff_means)
-    print(activity_mean_no_bl['activity'])
-
     statistics_output = percent_diff_means, percent_diff_medians
 
-    y_pos = range(1, (len(percent_diff_means)+1), 1)
+    percent_diff_means_idx = list(percent_diff_means.index)
+    y_pos = {key: percent_diff_means_idx[key-1] for key in range(1, (len(percent_diff_means_idx)+1), 1)}
     fig4, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.bar(y_pos, percent_diff_means, align='center', alpha=0.9)
-    pl.xticks(y_pos)
+    pl.bar(list(y_pos.keys()), percent_diff_means, align='center', alpha=0.9)
+    pl.xticks(list(y_pos.keys()), list(y_pos.values()))
     pl.ylabel('Skin conductance % difference (activity - baseline)')
     pl.xlabel('Activity number')
 
