@@ -6,8 +6,8 @@
 
 **User-defined inputs:**
 1. Working directory: $working_dir  --  e.g., "/Users/amorrison/Projects/hand_sensor_test/empaticadata" (put it in quotes) - this is where all downloaded zip archives are stored and where all output will be saved
-2. Spreadsheet with component timing, including file extension: $timing_xcel -- e.g., study_timing.xlsx, study_timing.xls
-3. Sheet name in $timing_xcel: $sheetname -- e.g., sheetname
+2. Spreadsheet with component timing, including file extension: $timing_xcel -- e.g., study_timing.xlsx, study_timing.xls (no quotes, needs the file extension)
+3. Sheet name in $timing_xcel: $sheetname -- e.g., exp_session (no quotes)
 4. Sampling frequency per second: $Fs  --  e.g., 4 (4 default for E4 sensors, integer, units = samples per second)
 5. Time interval of recording: $delta  --  e.g., 0.25 (0.25 default for E4 sensors, float, units = samples recorded every 0.25 seconds)
 6. Length of baseline in minutes: $min_baseline  --  e.g., 3 (integer in minutes)
@@ -33,7 +33,7 @@ Example command:
 `python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/empaticadata" test_timing.xlsx exp_session 4 0.25 3 png 1000`
 
 
-`python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" study_timing.xls sheetname 4 0.25 3 eps 2000`
+`python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" test_timing.xlsx exp_session 4 0.25 3 eps 2000`
 
 
 **Output saved to working directory:**
@@ -42,7 +42,11 @@ Example command:
 - total skin conductance from hand sensors (line)
 - phasic component of skin conductance (line)
 - tonic component of skin conductance (line)
+*The 3 above figures are only made for one sensor at a time - i.e., there is no averaging. They are snapshots of one sensor's data.*
+
 - mean percent difference between activity and baseline skin conductance (bar/column)
+*The above figure is the average across all sensors.*
+
 
 1 csv file with statistics:
 - mean and median percent difference between activity and baseline skin conductance for all activities
