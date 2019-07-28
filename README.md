@@ -10,9 +10,8 @@
 3. Sheet name in $timing_xcel: $sheetname -- e.g., exp_session (no quotes)
 4. Sampling frequency per second: $Fs  --  e.g., 4 (4 default for E4 sensors, integer, units = samples per second)
 5. Time interval of recording: $delta  --  e.g., 0.25 (0.25 default for E4 sensors, float, units = samples recorded every 0.25 seconds)
-6. Length of baseline in minutes: $min_baseline  --  e.g., 3 (integer in minutes)
-7. Preferred format for saved figures: $pref_format -- e.g., png, eps, pdf
-8. Preferred dpi (resolution) for saved figures: $pref_dpi -- e.g., 500, 1000, 2000 (1000 is a good readable resolution for png files)
+6. Preferred format for saved figures: $pref_format -- e.g., png, eps, pdf
+7. Preferred dpi (resolution) for saved figures: $pref_dpi -- e.g., 500, 1000, 2000 (1000 is a good readable resolution for png files)
 
 
 **To RUN:**
@@ -25,20 +24,20 @@ Example command:
 
 2) Run the script
 
-`python formattingSensorData.py $working_dir $timing_xcel $sheetname $FS $delta $min_baseline $pref_format $pref_dpi`
+`python formattingSensorData.py $working_dir $timing_xcel $sheetname $FS $delta $pref_format $pref_dpi`
 
 
-Example command:
+Example commands:
 
-`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/empaticadata" timing_for_components.xlsx exp_session 4 0.25 3 png 1000`
+`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/empaticadata" test_timing.xlsx exp_session 4 0.25 png 1000`
 
 
-`python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" test_timing.xlsx exp_session 4 0.25 3 eps 2000`
+`python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" test_timing.xlsx exp_session 4 0.25 eps 2000`
 
 
 **Output saved to working directory:**
 
-4 figures:
+5 figures:
 - total skin conductance from hand sensors (line)
 - phasic component of skin conductance (line)
 - tonic component of skin conductance (line)
@@ -46,8 +45,9 @@ Example command:
 *The 3 above figures are only made for one sensor at a time - i.e., there is no averaging. They are snapshots of one sensor's data.*
 
 - mean percent difference between activity and baseline skin conductance (bar/column)
+- median percent difference between activity and baseline skin conductance (bar/column)
 
-*The above figure is the average across all sensors.*
+*The above figures are averages across all sensors.*
 
 
 1 csv file with statistics:
