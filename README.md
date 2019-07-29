@@ -16,13 +16,28 @@
 
 **To RUN:**
 
-1) Install requirements.txt using pip:
+1) Install clean virtual environment to run code:
+
+`python3 -m pip install --user virtualenv`
+
+
+2) Create virutal environment:
+
+`python3 -m venv env`
+
+3) Activate the virtual environment:
+
+`source env/bin/activate`
+
+
+4) Install requirements.txt using pip:
 
 Example command:
 
 `pip install -r requirements.txt`
 
-2) Run the script
+
+5) Run the script
 
 `python formattingSensorData.py $working_dir $timing_xcel $sheetname $FS $delta $pref_format $pref_dpi`
 
