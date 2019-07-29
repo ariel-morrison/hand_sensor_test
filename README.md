@@ -16,6 +16,8 @@
 
 **To RUN:**
 
+Do steps 1-2 the FIRST time you run the code:
+
 1) Install clean virtual environment to run code:
 
 `python3 -m pip install --user virtualenv`
@@ -24,6 +26,9 @@
 2) Create virutal environment:
 
 `python3 -m venv env`
+
+
+If you've already installed a virtual environment, start here:
 
 3) Activate the virtual environment:
 
@@ -59,12 +64,12 @@ Example commands:
 
 *The 3 above figures are only made for one sensor at a time - i.e., there is no averaging. They are snapshots of one sensor's data.*
 
-- mean percent difference between activity and baseline skin conductance (bar/column)
-- median percent difference between activity and baseline skin conductance (bar/column)
+- mean percent difference between activity and baseline skin conductance (bar/column), std. error
+- median percent difference between activity and baseline skin conductance (bar/column), std. error
 
 *The above figures are averages across all sensors.*
 
 
 2 .csv files with statistics:
-- mean and median percent difference between activity and baseline skin conductance for all activities
-- average skin conductance values for all sensors, all activities
+- mean and median percent difference between activity and baseline skin conductance for all activities, including std. deviation/std. error
+- average skin conductance values for all sensors, all activities - baseline with stddev, activity with stddev
