@@ -50,5 +50,6 @@ Example commands:
 *The above figures are averages across all sensors.*
 
 
-1 csv file with statistics:
+2 .csv files with statistics:
 - mean and median percent difference between activity and baseline skin conductance for all activities
+- average skin conductance values for all sensors, all activities
