@@ -24,7 +24,7 @@ import plotly.graph_objs as go
 
 
 def cvxEDA(obs_EDA, delta, tau0=2., tau1=0.7, delta_knot=10., alpha=8e-4, gamma=1e-2,
-           solver=None, options={'reltol':1e-9}):
+           solver=None, options={'reltol': 1e-9, 'show_progress': False}):
 
     # default options = same as Ledalab
     """CVXEDA Convex optimization approach to electrodermal activity processing
@@ -246,7 +246,7 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df):
 
 
 
-def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_df):
+def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_df, output_dir):
     """
     Input: for plotting an individual's data - skin conductance dataframe (obs_EDA), phasic/tonic components,
     coefficients of tonic spline (l), offset and slope of the linear drift term (d), model residuals (e), value
@@ -269,7 +269,7 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
     pl.xlim(0, max(timing) + 1)
     pl.ylabel('Skin conductance - total (\u03bcS)')
     pl.xlabel('Time (min)')
-    fig1.savefig('total_conductance', format = pref_format, dpi = pref_dpi)
+    fig1.savefig(os.path.join(output_dir, 'total_conductance.png'), format = pref_format, dpi = pref_dpi)
     pl.close(fig1)
 
 # plotting phasic component of skin conductance
@@ -279,7 +279,7 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
     pl.xlim(0, max(timing) + 1)
     pl.ylabel('Skin conductance - phasic component (\u03bcS)')
     pl.xlabel('Time (min)')
-    fig2.savefig('phasic_component', format = pref_format, dpi = pref_dpi)
+    fig2.savefig(os.path.join(output_dir, 'phasic_component.png'), format = pref_format, dpi = pref_dpi)
     pl.close(fig2)
 
 # plotting tonic component of skin conductance
@@ -289,40 +289,36 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
     pl.xlim(-1, max(timing) + 1)
     pl.ylabel('Skin conductance - tonic component (\u03bcS)')
     pl.xlabel('Time (min)')
-    fig3.savefig('tonic_component', format = pref_format, dpi = pref_dpi)
+    fig3.savefig(os.path.join(output_dir, 'tonic_component.png'), format = pref_format, dpi = pref_dpi)
     pl.close(fig3)
 
-# get timing and EDA for each activity
+    # get timing and EDA for each activity
     activity_mean = get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df)
 
     activity_mean = activity_mean.reset_index()
+    activity_mean = activity_mean.rename(columns={'level_0': 'sensor_id'})
 
-# take out baselines for each sensor/person
-# each activity only compared against that person's baseline
-# --> still need to eliminate data records where baseline doesn't fit criterion
+    # take out baselines for each sensor/person
+    # each activity only compared against that person's baseline
+    # --> still need to eliminate data records where baseline doesn't fit criterion
 
-    baselines = activity_mean[activity_mean['activity'] == "Baseline"][["level_0", "skin_conduct"]]
-    baselines = baselines.rename(columns = {"level_0":"sensor_id","skin_conduct":"skin_conduct_baseline"})
+    baselines = activity_mean[activity_mean['activity'] == "Baseline"][["sensor_id", "skin_conduct"]]
+    baselines = baselines.rename(columns = {"skin_conduct":"skin_conduct_baseline"})
     activity_mean_no_bl = activity_mean[activity_mean['activity'] != "Baseline"]
-    activity_mean_no_bl = activity_mean_no_bl.rename(columns = {"level_0":"sensor_id","skin_conduct":"skin_conduct_means"})
+    activity_mean_no_bl = activity_mean_no_bl.rename(columns = {"skin_conduct":"skin_conduct_means"})
     activity_mean_merged = activity_mean_no_bl.merge(baselines, on = ["sensor_id"])
 
     percent_diff_means = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).mean()*100)
     percent_diff_medians = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).median()*100)
 
-    if min(percent_diff_means) < min(percent_diff_medians):
-        y_bottom = min(percent_diff_means)
-    else:
-        y_bottom = min(percent_diff_medians)
-
-    if max(percent_diff_means) > max(percent_diff_medians):
-        y_top = max(percent_diff_means)
-    else:
-        y_top = max(percent_diff_medians)
+    INT_MAX = sys.maxsize
+    INT_MIN = -sys.maxsize - 1
+    y_bottom = min(min(percent_diff_means, default=INT_MAX), min(percent_diff_medians, default=INT_MAX))
+    y_top = max(max(percent_diff_means, default=INT_MIN), max(percent_diff_medians, default=INT_MIN))
 
     statistics_output = percent_diff_means, percent_diff_medians
 
-# mean/median percent difference between baseline and activity
+    # mean/median percent difference between baseline and activity
     percent_diff_means_idx = list(percent_diff_means.index)
     y_pos = {key: percent_diff_means_idx[key-1] for key in range(1, (len(percent_diff_means_idx)+1), 1)}
     keywords = y_pos.values()
@@ -340,10 +336,10 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
     pl.ylabel('Mean skin conductance % difference\n(activity - baseline)')
 
     os.chdir(working_dir)
-    fig4.savefig('activity_means', format = pref_format, dpi = pref_dpi)
+    fig4.savefig(os.path.join(output_dir, 'activity_means.png'), format = pref_format, dpi = pref_dpi)
     pl.close(fig4)
 
-# median percent difference
+    # median percent difference
     fig5, ax = pl.subplots( nrows=1, ncols=1 )
     pl.bar(list(y_pos.keys()), percent_diff_medians, align='center', color=[0.12,0.35,1], alpha=1)
     pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90)
@@ -357,14 +353,14 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
     pl.ylabel('Median skin conductance % difference\n(activity - baseline)')
 
     os.chdir(working_dir)
-    fig5.savefig('activity_medians', format = pref_format, dpi = pref_dpi)
+    fig5.savefig(os.path.join(output_dir, 'activity_medians.png'), format = pref_format, dpi = pref_dpi)
     pl.close(fig5)
 
     return statistics_output, keywords, activity_mean
 
 
 
-def save_output_csv(statistics_output, working_dir, keywords, activity_mean):
+def save_output_csv(statistics_output, output_dir, keywords, activity_mean):
     """
     Input: Activity names ('keywords'), list of mean and median percent differences between baseline and activity
     skin conductance ('statistics_output'), and working directory ('working_dir')
@@ -376,8 +372,6 @@ def save_output_csv(statistics_output, working_dir, keywords, activity_mean):
     .csv file will be saved to working directory
     """
 
-    os.chdir(working_dir)
-
     # can change filename if you want
     filename = "skin_conductance_statistics.csv"
 
@@ -386,10 +380,9 @@ def save_output_csv(statistics_output, working_dir, keywords, activity_mean):
 
     # transpose dataframe so each activity is its own row, statistics for each activity are own column
     out_df = out_df.T
-    out_df.to_csv(filename, index=False, header=['Activity', 'Mean % diff', 'Median % diff'])
+    out_df.to_csv(os.path.join(output_dir, filename), index=False, header=['Activity', 'Mean % diff', 'Median % diff'])
 
-    export_csv = activity_mean.to_csv ((working_dir + '/' + 'activity_mean.csv'), index = None, header=True)
-
+    export_csv = activity_mean.to_csv(os.path.join(output_dir, 'activity_mean.csv'), index = None, header=True)
 
     print("Saved output to csv file")
 
@@ -416,7 +409,9 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, pref_fo
 
     # changes to working directory
     os.chdir(working_dir)
-
+    output_dir = os.path.join(os.path.split(working_dir)[0], 'output_dir')
+    if not os.path.exists(output_dir):
+        os.mkdir(output_dir)
     # check that we're in the right directory
     print("Is this your working directory?")
     print(os.getcwd())
@@ -462,15 +457,11 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, pref_fo
 
             EDA_dataframe_list[idx] = data
 
-
-    len(EDA_dataframe_list)
     EDA_data_df = pd.concat(EDA_dataframe_list,keys=[os.path.basename(name) for name in EDA_list])
     EDA_data_df.keys()
 
-
     # save conductance to csv file
     #export_csv = EDA_data_df.to_csv ((working_dir + '/' + 'raw_skin_conductance.csv'), index = None, header=True)
-
 
     #extract timesteps column
     obs_EDA = EDA_data_df.iloc[0:len(EDA_dataframe_list[0])]["skin_conduct"]
@@ -478,11 +469,8 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, pref_fo
 
     phasic, p, tonic, l, d, e, obj = cvxEDA(obs_EDA_list, 1./Fs)
 
-    statistics_output, keywords, activity_mean = plot_results(obs_EDA, phasic, p, tonic, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_df)
+    statistics_output, keywords, activity_mean = plot_results(obs_EDA, phasic, p, tonic, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_df, output_dir)
     save_output_csv(statistics_output, working_dir, keywords, activity_mean)
-
-
-
 
 if __name__=='__main__':
     working_dir, timing_xcel, sheetname, Fs, delta, pref_format, pref_dpi = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7]
