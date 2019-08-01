@@ -3,3 +3,4 @@ dev_env/
 empaticadata/*.csv
 empaticadata/*.png
 output_dir/
+**/*.ipynb*
