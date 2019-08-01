@@ -1,0 +1,5 @@
+dev_env/
+**/.DS_Store
+empaticadata/*.csv
+empaticadata/*.png
+output_dir/
