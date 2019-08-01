@@ -312,9 +312,13 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
     activity_mean_no_bl = activity_mean_no_bl.rename(columns = {"skin_conduct":"skin_conduct_means"})
     activity_mean_merged = activity_mean_no_bl.merge(baselines, on = ["sensor_id"])
 
-# mean/median percent difference between baseline and activity
+
+    # mean/median percent difference between baseline and activity
     percent_diff_means = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).mean()*100)
     percent_diff_medians = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).median()*100)
+    percent_diff_stddev = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).std()*100)
+    percent_diff_stderr = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).sem()*100)
+
 
     INT_MAX = sys.maxsize
     INT_MIN = -sys.maxsize - 1
@@ -322,7 +326,7 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
     y_top = max(max(percent_diff_means, default=INT_MIN), max(percent_diff_medians, default=INT_MIN))
 
     # for statistics csv output
-    statistics_output = percent_diff_means, percent_diff_medians
+    statistics_output = percent_diff_means, percent_diff_medians, percent_diff_stddev, percent_diff_stderr
 
     # mean/median percent difference between baseline and activity
     percent_diff_means_idx = list(percent_diff_means.index)
@@ -380,10 +384,10 @@ def save_output_csv(statistics_output, output_dir, keywords, activity_stats):
 
     filename = "skin_conductance_statistics.csv"
 
-    cols = [keywords, statistics_output[0], statistics_output[1]]
+    cols = [keywords, statistics_output[0], statistics_output[1], statistics_output[2], statistics_output[3]]
     out_df = pd.DataFrame(cols)
     out_df = out_df.T
-    out_df.to_csv(os.path.join(output_dir, filename), index=False, header=['Activity', 'Mean % diff', 'Median % diff'])
+    out_df.to_csv(os.path.join(output_dir, filename), index=False, header=['Activity', 'Mean % diff', 'Median % diff', 'Std. dev. of mean % diff', 'Std. err. of mean % diff'])
 
     # raw skin conductance values for each sensor id, each activity
     export_csv = activity_stats.to_csv(os.path.join(output_dir, 'activity_stats.csv'), index = None, header=True)
