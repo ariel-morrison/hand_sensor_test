@@ -203,7 +203,8 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df):
     """
     Input: working directory (working_dir) where all data are downloaded from Empatica website;
             spreadsheet (timing_xcel) where all component timing is recorded (see example);
-            sheet name in spreadsheet (sheetname) where all component timing is recorded
+            sheet name in spreadsheet (sheetname) where all component timing is recorded;
+            skin conductance dataframe (EDA_data_df)
 
     Goal: Find data within specific date/time ranges
 
@@ -246,15 +247,40 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df):
 
 
 
+
+def get_beri_protocol(working_dir, timing_beri):
+    """
+    Input: working directory (working_dir) where all data are downloaded from Empatica website;
+            spreadsheet (timing_beri) where BERI protocol observations are recorded (see example)
+
+    Goal: Find how many students exhibited engaged/disengaged behaviors
+
+    What it does: Opens the spreadsheet where all BERI observations are recorded, sums the number of
+    engaged/disengaged students during each type of activity, then normalizes it by the number of
+    instances of that activity
+    """
+
+    os.chdir(working_dir)
+
+    beri_timing = os.path.join(working_dir, "beri_example.xlsx")
+    beri = pd.read_excel(beri_timing)
+    eng_students = beri.reset_index().groupby(["Instructor activity"])['# students engaged'].mean()
+    diseng_students = beri.reset_index().groupby(["Instructor activity"])['# students disengaged'].mean()
+    eng_students_stddev = beri.reset_index().groupby(["Instructor activity"])['# students engaged'].std()
+    diseng_students_stddev = beri.reset_index().groupby(["Instructor activity"])['# students disengaged'].std()
+
+    return eng_students, diseng_students, eng_students_stddev, diseng_students_stddev
+
+
+
 def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_df, output_dir):
     """
     Input: for plotting an individual's data - skin conductance dataframe (obs_EDA), phasic/tonic components,
     coefficients of tonic spline (l), offset and slope of the linear drift term (d), model residuals (e), value
     of objective function being minimized (obj)
-    Sampling frequency per second (Fs), preferred figure format (pref_format),
-    preferred figure resolution (pref_dpi)
+    Sampling frequency per second (Fs), preferred figure format (pref_format), preferred figure resolution (pref_dpi)
 
-    Goal: To produce figures and save them to working directory
+    Goal: To produce figures and save them to output directory
 
     What it does: Plots line graphs of an individual's total, phasic, and tonic components of skin conductance
     against minutes. Calculates percent difference in mean skin conductance between an activity and baseline, plots
@@ -319,20 +345,21 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
     percent_diff_stddev = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).std()*100)
     percent_diff_stderr = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).sem()*100)
 
+    # for statistics csv output
+    statistics_output = percent_diff_means, percent_diff_medians, percent_diff_stddev, percent_diff_stderr
 
+    # for plotting on the same axes for all bar graphs
     INT_MAX = sys.maxsize
     INT_MIN = -sys.maxsize - 1
     y_bottom = min(min(percent_diff_means, default=INT_MAX), min(percent_diff_medians, default=INT_MAX))
     y_top = max(max(percent_diff_means, default=INT_MIN), max(percent_diff_medians, default=INT_MIN))
 
-    # for statistics csv output
-    statistics_output = percent_diff_means, percent_diff_medians, percent_diff_stddev, percent_diff_stderr
-
-    # mean/median percent difference between baseline and activity
+    # x-axis labels = activity names
     percent_diff_means_idx = list(percent_diff_means.index)
     y_pos = {key: percent_diff_means_idx[key-1] for key in range(1, (len(percent_diff_means_idx)+1), 1)}
     keywords = y_pos.values()
 
+    # mean percent difference
     fig4, ax = pl.subplots( nrows=1, ncols=1 )
     pl.bar(list(y_pos.keys()), percent_diff_means, align='center', color=[0.25,0.45,0.5], alpha=1)
     pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90)
@@ -340,12 +367,10 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
         pl.ylim(y_bottom, y_top+10)
     else:
         pl.ylim(y_bottom-5, y_top+10)
-    # Pad margins so that markers don't get clipped by the axes
     pl.margins(0.15)
     pl.subplots_adjust(bottom=0.2)
     pl.ylabel('Mean skin conductance % difference\n(activity - baseline)')
-
-    os.chdir(working_dir)
+    pl.tight_layout()
     fig4.savefig(os.path.join(output_dir, 'activity_means.png'), format = pref_format, dpi = pref_dpi)
     pl.close(fig4)
 
@@ -357,14 +382,35 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
         pl.ylim(y_bottom, y_top+10)
     else:
         pl.ylim(y_bottom-5, y_top+10)
-    # Pad margins so that markers don't get clipped by the axes
     pl.margins(0.15)
     pl.subplots_adjust(bottom=0.2)
     pl.ylabel('Median skin conductance % difference\n(activity - baseline)')
-
-    os.chdir(working_dir)
+    pl.tight_layout()
     fig5.savefig(os.path.join(output_dir, 'activity_medians.png'), format = pref_format, dpi = pref_dpi)
     pl.close(fig5)
+
+
+
+    # for BERI protocol analysis:
+    eng_students, diseng_students, eng_students_stddev, diseng_students_stddev = get_beri_protocol(working_dir, timing_beri)
+
+    fig6, ax = pl.subplots( nrows=1, ncols=1 )
+    eng_students.plot.bar(yerr=eng_students_stddev, color=[0.3,0.1,0.4], rot=65, capsize=5)
+    pl.ylabel("# engaged students")
+    pl.margins(0.15)
+    pl.subplots_adjust(bottom=0.2)
+    pl.tight_layout()
+    fig6.savefig(os.path.join(output_dir, 'number_engaged_students.png'), format = pref_format, dpi = pref_dpi)
+    pl.close(fig6)
+
+    fig7, ax = pl.subplots( nrows=1, ncols=1 )
+    diseng_students.plot.bar(yerr=diseng_students_stddev, color=[0,0.5,0], rot=65, capsize=5)
+    pl.ylabel("# disengaged students")
+    pl.margins(0.15)
+    pl.subplots_adjust(bottom=0.2)
+    pl.tight_layout()
+    fig7.savefig(os.path.join(output_dir, 'number_disengaged_students.png'), format = pref_format, dpi = pref_dpi)
+    pl.close(fig7)
 
     return statistics_output, keywords, activity_stats
 
@@ -373,13 +419,13 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
 def save_output_csv(statistics_output, output_dir, keywords, activity_stats):
     """
     Input: Activity names ('keywords'), list of mean and median percent differences between baseline and activity
-    skin conductance ('statistics_output'), and working directory ('working_dir')
+    skin conductance ('statistics_output'), and output directory where everything is saved ('output_dir')
 
     Goal: Save statistics as .csv file
 
     What it does: Creates a .csv file with one column for each statistic (e.g., mean, median, etc.)
     Each row is the statistics output for each activity (i.e., Row 1 is for the first activity)
-    .csv file will be saved to working directory
+    .csv file will be saved to output directory
     """
 
     filename = "skin_conductance_statistics.csv"
@@ -392,12 +438,13 @@ def save_output_csv(statistics_output, output_dir, keywords, activity_stats):
     # raw skin conductance values for each sensor id, each activity
     export_csv = activity_stats.to_csv(os.path.join(output_dir, 'activity_stats.csv'), index = None, header=True)
 
-    print("Saved output to csv file")
+    print("Saved all files to output directory")
+    print(" ")
 
     return filename
 
 
-def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, pref_format, pref_dpi):
+def format_and_plot_data(working_dir, timing_xcel, sheetname, timing_beri, Fs, delta, pref_format, pref_dpi):
     """
     Goal: Format all data downloaded from empatica website, plot data, and save statistics
 
@@ -417,6 +464,7 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, pref_fo
 
     # changes to working directory
     os.chdir(working_dir)
+    # makes an output directory inside working directory for all saved output files (figures, csv)
     output_dir = os.path.join(os.path.split(working_dir)[0], 'output_dir')
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
@@ -472,9 +520,11 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, pref_fo
 
     phasic, p, tonic, l, d, e, obj = cvxEDA(obs_EDA_list, 1./Fs)
 
-    statistics_output, keywords, activity_mean = plot_results(obs_EDA, phasic, p, tonic, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_df, output_dir)
-    save_output_csv(statistics_output, output_dir, keywords, activity_mean)
+    statistics_output, keywords, activity_stats = plot_results(obs_EDA, phasic, p, tonic, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_df, output_dir)
+    save_output_csv(statistics_output, output_dir, keywords, activity_stats)
+
+
 
 if __name__=='__main__':
-    working_dir, timing_xcel, sheetname, Fs, delta, pref_format, pref_dpi = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7]
-    format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, pref_format, pref_dpi)
+    working_dir, timing_xcel, sheetname, timing_beri, Fs, delta, pref_format, pref_dpi = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8]
+    format_and_plot_data(working_dir, timing_xcel, sheetname, timing_beri, Fs, delta, pref_format, pref_dpi)
