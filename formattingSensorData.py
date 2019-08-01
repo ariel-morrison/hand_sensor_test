@@ -237,12 +237,12 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df):
 
     activity_diff = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].max() - 2*(pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].min())
     bad_baseline = activity_diff.reset_index()
-    print(bad_baseline)
+    #print(bad_baseline)
     activity_mean = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].mean()
-    print(activity_diff)
-    #print(activity_mean)
+    activity_stddev = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].std()
+    activity_stderr = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].sem()
 
-    return activity_mean
+    return activity_mean, activity_stddev, activity_stderr
 
 
 
@@ -293,10 +293,14 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
     pl.close(fig3)
 
     # get timing and EDA for each activity
-    activity_mean = get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df)
-
+    activity_mean, activity_stddev, activity_stderr = get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df)
     activity_mean = activity_mean.reset_index()
     activity_mean = activity_mean.rename(columns={'level_0': 'sensor_id'})
+    activity_stddev = activity_stddev.reset_index()
+    activity_stddev2 = activity_stddev.rename(columns = {"level_0":"sensor_id","skin_conduct":"stddev_skin_conduct"})
+    activity_stderr = activity_stderr.reset_index()
+    activity_stderr2 = activity_stderr.rename(columns = {"level_0":"sensor_id","skin_conduct":"stderr_skin_conduct"})
+    activity_stats = pd.concat([activity_mean, activity_stddev2['stddev_skin_conduct'], activity_stderr2['stderr_skin_conduct']], axis=1)
 
     # take out baselines for each sensor/person
     # each activity only compared against that person's baseline
@@ -308,6 +312,7 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
     activity_mean_no_bl = activity_mean_no_bl.rename(columns = {"skin_conduct":"skin_conduct_means"})
     activity_mean_merged = activity_mean_no_bl.merge(baselines, on = ["sensor_id"])
 
+# mean/median percent difference between baseline and activity
     percent_diff_means = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).mean()*100)
     percent_diff_medians = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).median()*100)
 
@@ -316,6 +321,7 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
     y_bottom = min(min(percent_diff_means, default=INT_MAX), min(percent_diff_medians, default=INT_MAX))
     y_top = max(max(percent_diff_means, default=INT_MIN), max(percent_diff_medians, default=INT_MIN))
 
+    # for statistics csv output
     statistics_output = percent_diff_means, percent_diff_medians
 
     # mean/median percent difference between baseline and activity
@@ -327,7 +333,7 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
     pl.bar(list(y_pos.keys()), percent_diff_means, align='center', color=[0.25,0.45,0.5], alpha=1)
     pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90)
     if (0-0.5) <= y_bottom <= 0.5:
-        pl.ylim(0, y_top+10)
+        pl.ylim(y_bottom, y_top+10)
     else:
         pl.ylim(y_bottom-5, y_top+10)
     # Pad margins so that markers don't get clipped by the axes
@@ -356,11 +362,11 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
     fig5.savefig(os.path.join(output_dir, 'activity_medians.png'), format = pref_format, dpi = pref_dpi)
     pl.close(fig5)
 
-    return statistics_output, keywords, activity_mean
+    return statistics_output, keywords, activity_stats
 
 
 
-def save_output_csv(statistics_output, output_dir, keywords, activity_mean):
+def save_output_csv(statistics_output, output_dir, keywords, activity_stats):
     """
     Input: Activity names ('keywords'), list of mean and median percent differences between baseline and activity
     skin conductance ('statistics_output'), and working directory ('working_dir')
@@ -372,17 +378,15 @@ def save_output_csv(statistics_output, output_dir, keywords, activity_mean):
     .csv file will be saved to working directory
     """
 
-    # can change filename if you want
     filename = "skin_conductance_statistics.csv"
 
     cols = [keywords, statistics_output[0], statistics_output[1]]
     out_df = pd.DataFrame(cols)
-
-    # transpose dataframe so each activity is its own row, statistics for each activity are own column
     out_df = out_df.T
     out_df.to_csv(os.path.join(output_dir, filename), index=False, header=['Activity', 'Mean % diff', 'Median % diff'])
 
-    export_csv = activity_mean.to_csv(os.path.join(output_dir, 'activity_mean.csv'), index = None, header=True)
+    # raw skin conductance values for each sensor id, each activity
+    export_csv = activity_stats.to_csv(os.path.join(output_dir, 'activity_stats.csv'), index = None, header=True)
 
     print("Saved output to csv file")
 
@@ -412,15 +416,10 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, pref_fo
     output_dir = os.path.join(os.path.split(working_dir)[0], 'output_dir')
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-    # check that we're in the right directory
-    print("Is this your working directory?")
-    print(os.getcwd())
-    print(" ")
 
     zip_list, EDA_list, HR_list, tag_list = extract_zip_format_filenames(working_dir)
     print('Parsed ' + str(len(zip_list)) + ' zip archives ')
     print(" ")
-    # print("Getting EDA data from these data folders/sensor numbers:")
 
     EDA_dataframe_list = []
     fullRecordTime = []
@@ -470,7 +469,7 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, Fs, delta, pref_fo
     phasic, p, tonic, l, d, e, obj = cvxEDA(obs_EDA_list, 1./Fs)
 
     statistics_output, keywords, activity_mean = plot_results(obs_EDA, phasic, p, tonic, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_df, output_dir)
-    save_output_csv(statistics_output, working_dir, keywords, activity_mean)
+    save_output_csv(statistics_output, output_dir, keywords, activity_mean)
 
 if __name__=='__main__':
     working_dir, timing_xcel, sheetname, Fs, delta, pref_format, pref_dpi = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7]
