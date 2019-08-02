@@ -264,12 +264,17 @@ def get_beri_protocol(working_dir, timing_beri):
 
     beri_timing = os.path.join(working_dir, "beri_example.xlsx")
     beri = pd.read_excel(beri_timing)
-    eng_students = beri.reset_index().groupby(["Instructor activity"])['# students engaged'].mean()
-    diseng_students = beri.reset_index().groupby(["Instructor activity"])['# students disengaged'].mean()
-    eng_students_stddev = beri.reset_index().groupby(["Instructor activity"])['# students engaged'].std()
-    diseng_students_stddev = beri.reset_index().groupby(["Instructor activity"])['# students disengaged'].std()
 
-    return eng_students, diseng_students, eng_students_stddev, diseng_students_stddev
+    beri_group = beri.groupby(["Instructor activity"])
+    eng_students_agg = beri_group[['# students engaged', '# students disengaged']]
+    eng_students_agg = eng_students_agg.aggregate(
+        {'# students engaged': ['mean', 'sem', 'std'],
+         '# students disengaged': ['mean', 'sem', 'std']
+        })
+    eng_students_agg.reset_index(level = 0, inplace = True)
+    eng_students_agg.columns.set_levels(["mean","std. error","std. dev",""],level=1,inplace=True)
+
+    return eng_students_agg
 
 
 
@@ -322,8 +327,7 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
     activity_mean, activity_stddev, activity_stderr = get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df)
     activity_mean = activity_mean.reset_index()
     activity_mean = activity_mean.rename(columns={'level_0': 'sensor_id'})
-    activity_stddev = activity_stddev.reset_index()
-    activity_stddev2 = activity_stddev.rename(columns = {"level_0":"sensor_id","skin_conduct":"stddev_skin_conduct"})
+    activity_stddev2 = activity_stddev.reset_index().rename(columns = {"level_0":"sensor_id","skin_conduct":"stddev_skin_conduct"})
     activity_stderr = activity_stderr.reset_index()
     activity_stderr2 = activity_stderr.rename(columns = {"level_0":"sensor_id","skin_conduct":"stderr_skin_conduct"})
     activity_stats = pd.concat([activity_mean, activity_stddev2['stddev_skin_conduct'], activity_stderr2['stderr_skin_conduct']], axis=1)
@@ -370,7 +374,6 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
     pl.margins(0.15)
     pl.subplots_adjust(bottom=0.2)
     pl.ylabel('Mean skin conductance % difference\n(activity - baseline)')
-    pl.tight_layout()
     fig4.savefig(os.path.join(output_dir, 'activity_means.png'), format = pref_format, dpi = pref_dpi)
     pl.close(fig4)
 
@@ -385,17 +388,20 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
     pl.margins(0.15)
     pl.subplots_adjust(bottom=0.2)
     pl.ylabel('Median skin conductance % difference\n(activity - baseline)')
-    pl.tight_layout()
     fig5.savefig(os.path.join(output_dir, 'activity_medians.png'), format = pref_format, dpi = pref_dpi)
     pl.close(fig5)
 
 
 
     # for BERI protocol analysis:
-    eng_students, diseng_students, eng_students_stddev, diseng_students_stddev = get_beri_protocol(working_dir, timing_beri)
+    eng_students_agg = get_beri_protocol(working_dir, timing_beri)
+
+    eng_students_agg_idx = list(eng_students_agg['Instructor activity'])
+    eng_students_agg_idx = {key: eng_students_agg_idx[key] for key in range(0, (len(eng_students_agg_idx)), 1)}
 
     fig6, ax = pl.subplots( nrows=1, ncols=1 )
-    eng_students.plot.bar(yerr=eng_students_stddev, color=[0.3,0.1,0.4], rot=65, capsize=5)
+    eng_students_agg["# students engaged"]["mean"].plot.bar(x = list(eng_students_agg_idx.values()), yerr = eng_students_agg["# students engaged"]["std. dev"], color=[0.4,0.2,0.5], rot=65, capsize=5)
+    pl.xticks(list(eng_students_agg_idx.keys()), list(eng_students_agg_idx.values()), rotation=45)
     pl.ylabel("# engaged students")
     pl.margins(0.15)
     pl.subplots_adjust(bottom=0.2)
@@ -404,7 +410,8 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
     pl.close(fig6)
 
     fig7, ax = pl.subplots( nrows=1, ncols=1 )
-    diseng_students.plot.bar(yerr=diseng_students_stddev, color=[0,0.5,0], rot=65, capsize=5)
+    eng_students_agg["# students disengaged"]["mean"].plot.bar(x = list(eng_students_agg_idx.values()), yerr = eng_students_agg["# students disengaged"]["std. dev"], color=[0,0.52,0], rot=65, capsize=5)
+    pl.xticks(list(eng_students_agg_idx.keys()), list(eng_students_agg_idx.values()), rotation=45)
     pl.ylabel("# disengaged students")
     pl.margins(0.15)
     pl.subplots_adjust(bottom=0.2)
@@ -412,11 +419,11 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
     fig7.savefig(os.path.join(output_dir, 'number_disengaged_students.png'), format = pref_format, dpi = pref_dpi)
     pl.close(fig7)
 
-    return statistics_output, keywords, activity_stats
+    return statistics_output, keywords, activity_stats, eng_students_agg
 
 
 
-def save_output_csv(statistics_output, output_dir, keywords, activity_stats):
+def save_output_csv(statistics_output, output_dir, keywords, activity_stats, eng_students_agg):
     """
     Input: Activity names ('keywords'), list of mean and median percent differences between baseline and activity
     skin conductance ('statistics_output'), and output directory where everything is saved ('output_dir')
@@ -437,6 +444,7 @@ def save_output_csv(statistics_output, output_dir, keywords, activity_stats):
 
     # raw skin conductance values for each sensor id, each activity
     export_csv = activity_stats.to_csv(os.path.join(output_dir, 'activity_stats.csv'), index = None, header=True)
+    export_beri = eng_students_agg.to_csv(os.path.join(output_dir, 'beri_protocol_stats.csv'), index = None, header=True)
 
     print("Saved all files to output directory")
     print(" ")
@@ -520,8 +528,9 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, timing_beri, Fs, d
 
     phasic, p, tonic, l, d, e, obj = cvxEDA(obs_EDA_list, 1./Fs)
 
-    statistics_output, keywords, activity_stats = plot_results(obs_EDA, phasic, p, tonic, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_df, output_dir)
-    save_output_csv(statistics_output, output_dir, keywords, activity_stats)
+    statistics_output, keywords, activity_stats, eng_students_agg = plot_results(obs_EDA, phasic, p, tonic, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_df, output_dir)
+    save_output_csv(statistics_output, output_dir, keywords, activity_stats, eng_students_agg)
+    return eng_students_agg
 
 
 
