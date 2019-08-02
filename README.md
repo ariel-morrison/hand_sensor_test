@@ -67,14 +67,15 @@ Example commands:
 
 *The 3 above figures are only made for one sensor at a time - i.e., there is no averaging. They are snapshots of one sensor's data.*
 
-- mean percent difference between activity and baseline skin conductance (bar/column), std. error
-- median percent difference between activity and baseline skin conductance (bar/column), std. error
-- mean number of students exhibiting engaged behaviors during each class activity, based on BERI
-- mean number of students exhibiting disengaged behaviors during each class activity, based on BERI 
+- mean percent difference between activity and baseline skin conductance (bar/column)
+- median percent difference between activity and baseline skin conductance (bar/column)
+- mean number of students exhibiting engaged behaviors during each class activity, based on BERI protocol 
+- mean number of students exhibiting disengaged behaviors during each class activity, based on BERI protocol
 
 *The above figures are averages across all sensors.*
 
 
-2 .csv files with statistics:
+3 .csv files with statistics:
 - mean and median percent difference between activity and baseline skin conductance for all activities, including std. deviation/std. error
 - mean/standard deviation/standard error of skin conductance values for all sensors, all activities
+- mean/standard deviation/standard error of number of engaged/disengaged students during class activities, based on BERI protocol
