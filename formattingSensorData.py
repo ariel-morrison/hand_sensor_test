@@ -248,7 +248,7 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df):
 
 
 
-def get_beri_protocol(working_dir, timing_beri):
+def get_beri_protocol(working_dir, beri_xcel, beri_sheetname):
     """
     Input: working directory (working_dir) where all data are downloaded from Empatica website;
             spreadsheet (timing_beri) where BERI protocol observations are recorded (see example)
@@ -261,20 +261,14 @@ def get_beri_protocol(working_dir, timing_beri):
     """
 
     os.chdir(working_dir)
+    beri_obs = os.path.join(working_dir, str(beri_xcel))
 
-    beri_timing = os.path.join(working_dir, "beri_example.xlsx")
-    beri = pd.read_excel(beri_timing)
+    beri_df = pd.read_excel(beri_obs, sheet_name = beri_sheetname)
 
-    beri_group = beri.groupby(["Instructor activity"])
-    eng_students_agg = beri_group[['# students engaged', '# students disengaged']]
-    eng_students_agg = eng_students_agg.aggregate(
-        {'# students engaged': ['mean', 'sem', 'std'],
-         '# students disengaged': ['mean', 'sem', 'std']
-        })
-    eng_students_agg.reset_index(level = 0, inplace = True)
-    eng_students_agg.columns.set_levels(["mean","std. error","std. dev",""],level=1,inplace=True)
+    beri_df['total_eng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-E')] | beri_df.columns[beri_df.columns.str.contains('-L')] | beri_df.columns[beri_df.columns.str.contains('-W')])].sum(axis=1)
+    beri_df['total_diseng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-D')] | beri_df.columns[beri_df.columns.str.contains('-U')] | beri_df.columns[beri_df.columns.str.contains('-S')])].sum(axis=1)
 
-    return eng_students_agg
+    return beri_df
 
 
 
@@ -394,36 +388,37 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_d
 
 
     # for BERI protocol analysis:
-    eng_students_agg = get_beri_protocol(working_dir, timing_beri)
-
-    eng_students_agg_idx = list(eng_students_agg['Instructor activity'])
-    eng_students_agg_idx = {key: eng_students_agg_idx[key] for key in range(0, (len(eng_students_agg_idx)), 1)}
+    beri_df = get_beri_protocol(working_dir, beri_xcel, beri_sheetname)
 
     fig6, ax = pl.subplots( nrows=1, ncols=1 )
-    eng_students_agg["# students engaged"]["mean"].plot.bar(x = list(eng_students_agg_idx.values()), yerr = eng_students_agg["# students engaged"]["std. dev"], color=[0.4,0.2,0.5], rot=65, capsize=5)
-    pl.xticks(list(eng_students_agg_idx.keys()), list(eng_students_agg_idx.values()), rotation=45)
-    pl.ylabel("# engaged students")
+    pl.plot(beri_df['time'], beri_df['total_eng'], color = 'r')
+    pl.ylabel('# engaged students')
+    pl.xlabel('Time (min)')
+    pl.ylim(0,20)
     pl.margins(0.15)
     pl.subplots_adjust(bottom=0.2)
     pl.tight_layout()
     fig6.savefig(os.path.join(output_dir, 'number_engaged_students.png'), format = pref_format, dpi = pref_dpi)
     pl.close(fig6)
 
+
     fig7, ax = pl.subplots( nrows=1, ncols=1 )
-    eng_students_agg["# students disengaged"]["mean"].plot.bar(x = list(eng_students_agg_idx.values()), yerr = eng_students_agg["# students disengaged"]["std. dev"], color=[0,0.52,0], rot=65, capsize=5)
-    pl.xticks(list(eng_students_agg_idx.keys()), list(eng_students_agg_idx.values()), rotation=45)
+    pl.plot(beri_df['time'], beri_df['total_diseng'], color = 'k')
+    pl.ylabel('# disengaged students')
+    pl.xlabel('Time (min)')
     pl.ylabel("# disengaged students")
+    pl.ylim(0,20)
     pl.margins(0.15)
     pl.subplots_adjust(bottom=0.2)
     pl.tight_layout()
     fig7.savefig(os.path.join(output_dir, 'number_disengaged_students.png'), format = pref_format, dpi = pref_dpi)
     pl.close(fig7)
 
-    return statistics_output, keywords, activity_stats, eng_students_agg
+    return statistics_output, keywords, activity_stats, beri_df
 
 
 
-def save_output_csv(statistics_output, output_dir, keywords, activity_stats, eng_students_agg):
+def save_output_csv(statistics_output, output_dir, keywords, activity_stats, beri_df):
     """
     Input: Activity names ('keywords'), list of mean and median percent differences between baseline and activity
     skin conductance ('statistics_output'), and output directory where everything is saved ('output_dir')
@@ -444,7 +439,8 @@ def save_output_csv(statistics_output, output_dir, keywords, activity_stats, eng
 
     # raw skin conductance values for each sensor id, each activity
     export_csv = activity_stats.to_csv(os.path.join(output_dir, 'activity_stats.csv'), index = None, header=True)
-    export_beri = eng_students_agg.to_csv(os.path.join(output_dir, 'beri_protocol_stats.csv'), index = None, header=True)
+    cols_to_keep = ['time','class_subject_code','class_number','class_date','total_eng','total_diseng']
+    export_beri = beri_df[cols_to_keep].to_csv(os.path.join(output_dir, 'beri_protocol_stats.csv'), index = None, header=True)
 
     print("Saved all files to output directory")
     print(" ")
@@ -452,7 +448,7 @@ def save_output_csv(statistics_output, output_dir, keywords, activity_stats, eng
     return filename
 
 
-def format_and_plot_data(working_dir, timing_xcel, sheetname, timing_beri, Fs, delta, pref_format, pref_dpi):
+def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_xcel, beri_sheetname, Fs, delta, pref_format, pref_dpi):
     """
     Goal: Format all data downloaded from empatica website, plot data, and save statistics
 
@@ -519,8 +515,6 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, timing_beri, Fs, d
     EDA_data_df = pd.concat(EDA_dataframe_list,keys=[os.path.basename(name) for name in EDA_list])
     EDA_data_df.keys()
 
-    # save conductance to csv file
-    #export_csv = EDA_data_df.to_csv ((working_dir + '/' + 'raw_skin_conductance.csv'), index = None, header=True)
 
     #extract timesteps column
     obs_EDA = EDA_data_df.iloc[0:len(EDA_dataframe_list[0])]["skin_conduct"]
@@ -528,12 +522,12 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, timing_beri, Fs, d
 
     phasic, p, tonic, l, d, e, obj = cvxEDA(obs_EDA_list, 1./Fs)
 
-    statistics_output, keywords, activity_stats, eng_students_agg = plot_results(obs_EDA, phasic, p, tonic, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_df, output_dir)
-    save_output_csv(statistics_output, output_dir, keywords, activity_stats, eng_students_agg)
-    return eng_students_agg
+    statistics_output, keywords, activity_stats, beri_df = plot_results(obs_EDA, phasic, p, tonic, l, d, e, obj, Fs, pref_format, pref_dpi, EDA_data_df, output_dir)
+    save_output_csv(statistics_output, output_dir, keywords, activity_stats, beri_df)
+    return beri_df
 
 
 
 if __name__=='__main__':
-    working_dir, timing_xcel, sheetname, timing_beri, Fs, delta, pref_format, pref_dpi = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8]
-    format_and_plot_data(working_dir, timing_xcel, sheetname, timing_beri, Fs, delta, pref_format, pref_dpi)
+    working_dir, timing_xcel, sheetname, beri_xcel, beri_sheetname, Fs, delta, pref_format, pref_dpi = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8], sys.argv[9]
+    format_and_plot_data(working_dir, timing_xcel, sheetname, beri_xcel, beri_sheetname, Fs, delta, pref_format, pref_dpi)
