@@ -14,7 +14,7 @@
 7. Time interval of recording: $delta  --  e.g., 0.25 (0.25 default for E4 sensors, float, units = samples recorded every 0.25 seconds)
 8. Preferred format for saved figures: $pref_format -- e.g., png, eps, pdf
 9. Preferred dpi (resolution) for saved figures: $pref_dpi -- e.g., 500, 1000, 2000 (1000 is a good readable resolution for png files)
-
+10. Separate baseline recording, true or false: $separate_baseline -- e.g., True (**NOTE**: only True or False are acceptable inputs. If baselines are recorded separately, must be stored in a subdirectory of the working directory called "calibration")
 
 
 **To RUN:**
@@ -47,12 +47,12 @@ Example command:
 
 5) Run the script
 
-`python formattingSensorData.py $working_dir $timing_xcel $sheetname $timing_beri $beri_sheetname $FS $delta $pref_format $pref_dpi`
+`python formattingSensorData.py $working_dir $timing_xcel $sheetname $timing_beri $beri_sheetname $FS $delta $pref_format $pref_dpi $separate_baseline`
 
 
 Example commands:
 
-`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/empaticadata" test_timing.xlsx exp_session beri_obs_2018_10_15_boyd.xlsx 20181015 4 0.25 png 1000`
+`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/empaticadata" test_timing.xlsx exp_session beri_obs_2018_10_15_boyd.xlsx 20181015 4 0.25 png 1000 True`
 
 
 `python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" test_timing.xlsx exp_session beri_example.xlsx oct152018 4 0.25 eps 2000`
@@ -79,3 +79,8 @@ Example commands:
 - mean and median percent difference between activity and baseline skin conductance for all activities, including std. deviation/std. error
 - mean/standard deviation/standard error of skin conductance values for all sensors, all activities
 - mean/standard deviation/standard error of number of engaged/disengaged students during class activities, based on BERI protocol
+
+
+
+# Common sources of error:
+- Timing format is incorrect. When recording the activity timing in a spreadsheet, the format must always be YYYYMMDDHHMMSS. If the day and month columns are switched, the month column may end up out of range (e.g., if the date is September 28 and the month/day columns are switched then there will be an error because there are not 28 months).
