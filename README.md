@@ -8,13 +8,12 @@
 1. Working directory, where all downloaded zip archives are stored and where all output will be saved: $working_dir  --  e.g., "/Users/amorrison/Projects/hand_sensor_test/empaticadata" (put it in quotes)
 2. Spreadsheet with component timing, including file extension: $timing_xcel -- e.g., study_timing.xlsx, study_timing.xls (no quotes, needs the file extension)
 3. Sheet name in $timing_xcel: $sheetname -- e.g., exp_session (no quotes)
-4. BERI protocol observations, including file extension: $beri_xcel -- e.g., beri_example.xlsx
+4. BERI protocol observations, including file extension: $timing_beri -- e.g., beri_example.xlsx
 5. Sheet name in $beri_excel: $beri_sheetname -- e.g., observations_111518 (no quotes)
 6. Sampling frequency per second: $Fs  --  e.g., 4 (4 default for E4 sensors, integer, units = samples per second)
 7. Time interval of recording: $delta  --  e.g., 0.25 (0.25 default for E4 sensors, float, units = samples recorded every 0.25 seconds)
-8. Preferred format for saved figures: $pref_format -- e.g., png, eps, pdf
-9. Preferred dpi (resolution) for saved figures: $pref_dpi -- e.g., 500, 1000, 2000 (1000 is a good readable resolution for png files)
-10. Separate baseline recording, true or false: $separate_baseline -- e.g., True (**NOTE**: only True or False are acceptable inputs. If baselines are recorded separately, must be stored in a subdirectory of the working directory called "calibration")
+8. Preferred dpi (resolution) for saved figures: $pref_dpi -- e.g., 500, 1000, 2000 (1000 is a good readable resolution for png files)
+9. Separate baseline recording, true or false: $separate_baseline -- e.g., True (**NOTE**: only True or False are acceptable inputs. If baselines are recorded separately, must be stored in a subdirectory of the working directory called "calibration")
 
 
 **To RUN:**
@@ -47,15 +46,15 @@ Example command:
 
 5) Run the script
 
-`python formattingSensorData.py $working_dir $timing_xcel $sheetname $timing_beri $beri_sheetname $FS $delta $pref_format $pref_dpi $separate_baseline`
+`python formattingSensorData.py $working_dir $timing_xcel $sheetname $timing_beri $beri_sheetname $FS $delta $pref_dpi $separate_baseline`
 
 
 Example commands:
 
-`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/empaticadata" test_timing.xlsx exp_session beri_obs_2018_10_15_boyd.xlsx 20181015 4 0.25 png 1000 True`
+`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/1060data" ATOC1060TimingComponents.xlsx total_timing beri_obs_2018_10_15_boyd.xlsx 20181015 4 0.25 800 True`
 
 
-`python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" test_timing.xlsx exp_session beri_example.xlsx oct152018 4 0.25 eps 2000`
+`python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" test_timing.xlsx exp_session beri_example.xlsx oct152018 4 0.25 2000 False`
 
 
 **Files saved to output directory:**
@@ -83,4 +82,5 @@ Example commands:
 
 
 # Common sources of error:
+- Omitting user inputs. All 9 of the user-defined inputs must be included when calling the script. 
 - Timing format is incorrect. When recording the activity timing in a spreadsheet, the format must always be YYYYMMDDHHMMSS. If the day and month columns are switched, the month column may end up out of range (e.g., if the date is September 28 and the month/day columns are switched then there will be an error because there are not 28 months).
