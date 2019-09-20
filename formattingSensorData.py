@@ -127,7 +127,8 @@ def cvxEDA(obs_EDA, delta, tau0=2., tau1=0.7, delta_knot=10., alpha=8e-4, gamma=
     phasic = M * q
     e = obs_EDA - phasic - tonic
 
-    return (np.array(a).ravel() for a in (phasic, p, tonic, l, d, e, obj))
+    # return [np.array(a).ravel() for a in (phasic, p, tonic, l, d, e, obj)]
+    return [np.array(a).ravel() for a in (phasic, tonic, e)]
 
 
 def extract_zip_format_filenames(working_dir):
@@ -268,7 +269,7 @@ def get_beri_protocol(working_dir, beri_xcel, beri_sheetname):
 
 
 
-def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline):
+def plot_results(obs_EDA, phasic, tonic, Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline):
     """
     Input: for plotting an individual's data - skin conductance dataframe (obs_EDA), phasic/tonic components,
     coefficients of tonic spline (l), offset and slope of the linear drift term (d), model residuals (e), value
@@ -381,7 +382,6 @@ def plot_results(y, r, p, t, l, d, e, obj, Fs, pref_dpi, EDA_data_df, output_dir
         activity_mean_no_bl = activity_mean[activity_mean['activity'] != "Baseline"]
         activity_mean_no_bl = activity_mean_no_bl.rename(columns = {"skin_conduct":"skin_conduct_means"})
         activity_mean_merged = activity_mean_no_bl.merge(baselines, on = ["sensor_id"])
-
 
 
  ######## original script
@@ -507,7 +507,7 @@ def save_output_csv(statistics_output, output_dir, keywords, activity_stats, ber
 
 
 
-def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_xcel, beri_sheetname, Fs, delta, pref_dpi):
+def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_xcel, beri_sheetname, Fs, delta, pref_dpi, separate_baseline):
     """
     Goal: Format all data downloaded from empatica website, plot data, and save statistics
 
@@ -567,23 +567,25 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_xcel, beri_sh
             EDA_dataframe_list[idx] = data
 
     EDA_data_df = pd.concat(EDA_dataframe_list,keys=[os.path.basename(name) for name in EDA_list])
-    EDA_data_df.keys()
 
     # skin conductance for decomposition analysis
     obs_EDA = EDA_data_df.iloc[0:len(EDA_dataframe_list[0])]["skin_conduct"]
 
-    # to loop through each student's phasic/tonic components, take EDA_dataframe_list[idx]
-    #obs_EDA = EDA_dataframe_list
+    def format_cvx(grp, Fs):
+        grp['phasic'], grp['tonic'], grp['residuals'] = cvxEDA(grp['skin_conduct'], 1./Fs)
+        return grp
 
-    phasic, p, tonic, l, d, e, obj = cvxEDA(obs_EDA, 1./Fs)
+    EDA_data_df = EDA_data_df.groupby(level=0).apply(format_cvx, Fs=Fs)
 
-    statistics_output, keywords, activity_stats, beri_df = plot_results(obs_EDA, phasic, p, tonic, l, d, e, obj, Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline)
+    cvx_first = EDA_data_df.groupby(level=0).first()
+    #print('cvx_first', cvx_first)
+
+    statistics_output, keywords, activity_stats, beri_df = plot_results(cvx_first['skin_conduct'], cvx_first['phasic'], cvx_first['tonic'], Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline)
     save_output_csv(statistics_output, output_dir, keywords, activity_stats, beri_df)
 
     return beri_df
 
 
-
 if __name__=='__main__':
-    working_dir, timing_xcel, sheetname, beri_xcel, beri_sheetname, Fs, delta, pref_format, pref_dpi = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8]
-    format_and_plot_data(working_dir, timing_xcel, sheetname, beri_xcel, beri_sheetname, Fs, delta, pref_dpi)
+    working_dir, timing_xcel, sheetname, beri_xcel, beri_sheetname, Fs, delta, pref_dpi, separate_baseline = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8], sys.argv[9]
+    format_and_plot_data(working_dir, timing_xcel, sheetname, beri_xcel, beri_sheetname, Fs, delta, pref_dpi, separate_baseline)
