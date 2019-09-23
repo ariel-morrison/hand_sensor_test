@@ -285,34 +285,34 @@ def plot_results(obs_EDA, phasic, tonic, Fs, pref_dpi, EDA_data_df, output_dir, 
 
     timing = pl.arange(1., len(obs_EDA) + 1.) / (60 * Fs) # minutes = divide by 240 = 60 seconds * 4 records/sec
 
-# # plotting total conductance (phasic + tonic + noise)
-#     fig1, ax = pl.subplots( nrows=1, ncols=1 )
-#     pl.plot(timing, obs_EDA, color = 'r')
-#     pl.xlim(0, max(timing) + 1)
-#     pl.ylabel('Skin conductance - total (\u03bcS)')
-#     pl.xlabel('Time (min)')
-#     fig1.savefig(os.path.join(output_dir, 'total_conductance.png'), dpi = pref_dpi)
-#     pl.close(fig1)
-#
-# # plotting phasic component of skin conductance
-#     ylim_top = max(phasic)
-#     fig2, ax = pl.subplots( nrows=1, ncols=1 )
-#     pl.plot(timing, phasic, color = 'b')
-#     pl.xlim(0, max(timing) + 1)
-#     pl.ylabel('Skin conductance - phasic component (\u03bcS)')
-#     pl.xlabel('Time (min)')
-#     fig2.savefig(os.path.join(output_dir, 'phasic_component.png'), dpi = pref_dpi)
-#     pl.close(fig2)
-#
-# # plotting tonic component of skin conductance
-#     ylim_top = max(tonic)
-#     fig3, ax = pl.subplots( nrows=1, ncols=1 )
-#     pl.plot(timing, tonic, color = 'g')
-#     pl.xlim(-1, max(timing) + 1)
-#     pl.ylabel('Skin conductance - tonic component (\u03bcS)')
-#     pl.xlabel('Time (min)')
-#     fig3.savefig(os.path.join(output_dir, 'tonic_component.png'), dpi = pref_dpi)
-#     pl.close(fig3)
+# plotting total conductance (phasic + tonic + noise)
+    fig1, ax = pl.subplots( nrows=1, ncols=1 )
+    pl.plot(timing, obs_EDA, color = 'r')
+    pl.xlim(0, max(timing) + 1)
+    pl.ylabel('Skin conductance - total (\u03bcS)')
+    pl.xlabel('Time (min)')
+    fig1.savefig(os.path.join(output_dir, 'total_conductance.png'), dpi = pref_dpi)
+    pl.close(fig1)
+
+# plotting phasic component of skin conductance
+    ylim_top = max(phasic)
+    fig2, ax = pl.subplots( nrows=1, ncols=1 )
+    pl.plot(timing, phasic, color = 'b')
+    pl.xlim(0, max(timing) + 1)
+    pl.ylabel('Skin conductance - phasic component (\u03bcS)')
+    pl.xlabel('Time (min)')
+    fig2.savefig(os.path.join(output_dir, 'phasic_component.png'), dpi = pref_dpi)
+    pl.close(fig2)
+
+# plotting tonic component of skin conductance
+    ylim_top = max(tonic)
+    fig3, ax = pl.subplots( nrows=1, ncols=1 )
+    pl.plot(timing, tonic, color = 'g')
+    pl.xlim(-1, max(timing) + 1)
+    pl.ylabel('Skin conductance - tonic component (\u03bcS)')
+    pl.xlabel('Time (min)')
+    fig3.savefig(os.path.join(output_dir, 'tonic_component.png'), dpi = pref_dpi)
+    pl.close(fig3)
 
 
     # get timing and EDA for each activity
@@ -436,10 +436,6 @@ def plot_results(obs_EDA, phasic, tonic, Fs, pref_dpi, EDA_data_df, output_dir, 
     fig5, ax = pl.subplots( nrows=1, ncols=1 )
     pl.bar(list(y_pos.keys()), percent_diff_medians, align='center', color=[0.12,0.35,1], alpha=1)
     pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=7)
-    # if (0-0.5) <= y_bottom <= 0.5:
-    #     pl.ylim(y_bottom, y_top+10)
-    # else:
-    #     pl.ylim(y_bottom-10, y_top+10)
     pl.ylim(min(percent_diff_medians-1), max(percent_diff_medians+1))
     pl.margins(0.01,0)
     pl.subplots_adjust(bottom=0.25, left=0.15)
@@ -453,29 +449,29 @@ def plot_results(obs_EDA, phasic, tonic, Fs, pref_dpi, EDA_data_df, output_dir, 
     # for BERI protocol analysis:
     beri_df = get_beri_protocol(working_dir, beri_xcel, beri_sheetname)
 
-    # fig6, ax = pl.subplots( nrows=1, ncols=1 )
-    # pl.plot(beri_df['time'], beri_df['total_eng'], color = 'r')
-    # pl.ylabel('# engaged students')
-    # pl.xlabel('Time (min)')
-    # pl.ylim(0,18)
-    # pl.margins(0.15)
-    # pl.subplots_adjust(bottom=0.2)
-    # pl.tight_layout()
-    # fig6.savefig(os.path.join(output_dir, 'number_engaged_students.png'), dpi = pref_dpi)
-    # pl.close(fig6)
-    #
-    #
-    # fig7, ax = pl.subplots( nrows=1, ncols=1 )
-    # pl.plot(beri_df['time'], beri_df['total_diseng'], color = 'k')
-    # pl.ylabel('# disengaged students')
-    # pl.xlabel('Time (min)')
-    # pl.ylabel("# disengaged students")
-    # pl.ylim(0,18)
-    # pl.margins(0.15)
-    # pl.subplots_adjust(bottom=0.2)
-    # pl.tight_layout()
-    # fig7.savefig(os.path.join(output_dir, 'number_disengaged_students.png'), dpi = pref_dpi)
-    # pl.close(fig7)
+    fig6, ax = pl.subplots( nrows=1, ncols=1 )
+    pl.plot(beri_df['time'], beri_df['total_eng'], color = 'r')
+    pl.ylabel('# engaged students')
+    pl.xlabel('Time (min)')
+    pl.ylim(0,18)
+    pl.margins(0.15)
+    pl.subplots_adjust(bottom=0.2)
+    pl.tight_layout()
+    fig6.savefig(os.path.join(output_dir, 'number_engaged_students.png'), dpi = pref_dpi)
+    pl.close(fig6)
+
+
+    fig7, ax = pl.subplots( nrows=1, ncols=1 )
+    pl.plot(beri_df['time'], beri_df['total_diseng'], color = 'k')
+    pl.ylabel('# disengaged students')
+    pl.xlabel('Time (min)')
+    pl.ylabel("# disengaged students")
+    pl.ylim(0,18)
+    pl.margins(0.15)
+    pl.subplots_adjust(bottom=0.2)
+    pl.tight_layout()
+    fig7.savefig(os.path.join(output_dir, 'number_disengaged_students.png'), dpi = pref_dpi)
+    pl.close(fig7)
 
     return statistics_output, keywords, activity_stats, beri_df
 
