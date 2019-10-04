@@ -51,7 +51,7 @@ Example command:
 
 Example commands:
 
-`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/1060data" ATOC1060TimingComponents.xlsx total_timing beri_obs_2018_10_25_boyd.xlsx 20181025 4 0.25 800 True`
+`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/1060data" ATOC1060TimingComponents.xlsx total_timing beri_obs_2018_10_25_boyd.xlsx obs20181025 4 0.25 800 True`
 
 
 `python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" test_timing.xlsx exp_session beri_example.xlsx oct152018 4 0.25 2000 False`
@@ -75,13 +75,13 @@ Example commands:
 
 
 3 .csv files with statistics:
-- mean and median percent difference between activity and baseline skin conductance for all activities, including std. deviation/std. error
+- for each activity: mean and median percent difference between activity and baseline skin conductance, std. deviation and std. error for mean percent difference, total time (in seconds) spent on each activity
 - mean/standard deviation/standard error of skin conductance values for all sensors, all activities
 - mean/standard deviation/standard error of number of engaged/disengaged students during class activities, based on BERI protocol
 
 
 
 # Common sources of error:
-- Incorrect working directory. working_dir must be the directory where all input data are stored. 
+- Incorrect working directory. working_dir must be the directory where all input data are stored.
 - Omitting user inputs. All 9 of the user-defined inputs must be included when calling the script.
 - Timing format is incorrect. When recording the activity timing in a spreadsheet, the format must always be YYYYMMDDHHMMSS. If the day and month columns are switched, the month column may end up out of range (e.g., if the date is September 28 and the month/day columns are switched then there will be an error because there are not 28 months).
