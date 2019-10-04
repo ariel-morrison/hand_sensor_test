@@ -181,15 +181,15 @@ def extract_zip_format_filenames(working_dir):
                     os.rename(eda_filepath, eda_filename)
                     EDA_list.append(eda_filename)
 
-                if os.path.isfile(os.path.join(working_sub_dir, 'HR.csv')): # check if a HR.csv file exists in the folder
-                    hr_filename = working_dir + '/' + str(sensorNum) + '_HR.csv'
-                    os.rename(working_sub_dir + '/' + 'HR.csv', hr_filename)
-                    HR_list.append(hr_filename)
-
-                if os.path.isfile(os.path.join(working_sub_dir, 'tags.csv')): # check if a tags.csv file exists in the folder
-                    tag_filename = working_dir + '/' + str(sensorNum) + '_tags.csv'
-                    os.rename(working_sub_dir + '/' + 'tags.csv', tag_filename)
-                    tag_list.append(tag_filename)
+                # if os.path.isfile(os.path.join(working_sub_dir, 'HR.csv')): # check if a HR.csv file exists in the folder
+                #     hr_filename = working_dir + '/' + str(sensorNum) + '_HR.csv'
+                #     os.rename(working_sub_dir + '/' + 'HR.csv', hr_filename)
+                #     HR_list.append(hr_filename)
+                #
+                # if os.path.isfile(os.path.join(working_sub_dir, 'tags.csv')): # check if a tags.csv file exists in the folder
+                #     tag_filename = working_dir + '/' + str(sensorNum) + '_tags.csv'
+                #     os.rename(working_sub_dir + '/' + 'tags.csv', tag_filename)
+                #     tag_list.append(tag_filename)
 
                 shutil.rmtree(working_sub_dir)
 
@@ -210,7 +210,8 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df):
     each row of the starting time ('datetime_start') and creates a YYYYMMDDHHMMSS timestamp,
     reads through each row of the ending time ('datetime_end') and creates a YYYYMMDDHHMMSS timestamp,
     then reads through every timestamp of the skin conductance dataframe to find the values that fall
-    within the start and end time of each component.
+    within the start and end time of each component. Also counts the total number of seconds spent on
+    each class activity.
     """
 
     os.chdir(working_dir)
@@ -240,8 +241,15 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df):
     activity_stddev = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].std()
     activity_stderr = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].sem()
 
-    return activity_mean, activity_stddev, activity_stderr
+    # to get the total number of seconds spent on each class activity
+    xcel['total_time'] = pd.to_datetime(xcel['datetime_end'], infer_datetime_format=True) - pd.to_datetime(xcel['datetime_start'], infer_datetime_format=True)
+    total_time = xcel[['Activity Start','total_time']]
+    total_time = total_time.reset_index().groupby(['Activity Start'])['total_time'].sum()
+    xcel['total_time_seconds'] = xcel['total_time'].dt.total_seconds()
+    total_time_seconds = xcel[['Activity Start', 'total_time_seconds']]
+    total_time_seconds = total_time_seconds.reset_index().groupby(['Activity Start'])['total_time_seconds'].sum()
 
+    return activity_mean, activity_stddev, activity_stderr, total_time, total_time_seconds
 
 
 
@@ -265,6 +273,8 @@ def get_beri_protocol(working_dir, beri_xcel, beri_sheetname):
     beri_df['total_eng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-E')] | beri_df.columns[beri_df.columns.str.contains('-L')] | beri_df.columns[beri_df.columns.str.contains('-W')])].sum(axis=1)
     beri_df['total_diseng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-D')] | beri_df.columns[beri_df.columns.str.contains('-U')] | beri_df.columns[beri_df.columns.str.contains('-S')])].sum(axis=1)
 
+    print("Finished BERI")
+    print(" ")
     return beri_df
 
 
@@ -316,7 +326,7 @@ def plot_results(obs_EDA, phasic, tonic, Fs, pref_dpi, EDA_data_df, output_dir, 
 
 
     # get timing and EDA for each activity
-    activity_mean, activity_stddev, activity_stderr = get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df)
+    activity_mean, activity_stddev, activity_stderr, total_time, total_time_seconds = get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df)
     activity_mean = activity_mean.reset_index()
     activity_mean = activity_mean.rename(columns={'level_0': 'sensor_id'})
     print("Finished activity timing")
@@ -403,7 +413,7 @@ def plot_results(obs_EDA, phasic, tonic, Fs, pref_dpi, EDA_data_df, output_dir, 
     percent_diff_stderr = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).sem()*100)
 
     # for statistics csv output
-    statistics_output = percent_diff_means, percent_diff_medians, percent_diff_stddev, percent_diff_stderr
+    statistics_output = percent_diff_means, percent_diff_medians, percent_diff_stddev, percent_diff_stderr, total_time, total_time_seconds
 
     # for plotting on the same axes for all bar graphs
     INT_MAX = sys.maxsize
@@ -418,29 +428,29 @@ def plot_results(obs_EDA, phasic, tonic, Fs, pref_dpi, EDA_data_df, output_dir, 
 
     # mean percent difference
     fig4, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.bar(list(y_pos.keys()), percent_diff_means, yerr=percent_diff_stderr, error_kw=dict(lw=0.7, capsize=2.6, capthick=0.7), align='center', color=[0.25,0.45,0.55], alpha=1)
-    pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=7)
+    pl.bar(list(y_pos.keys()), percent_diff_means, yerr=percent_diff_stderr, error_kw=dict(lw=0.7, capsize=2.5, capthick=0.6), align='center', color=[0.3,0.45,0.65], alpha=1)
+    pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=6)
     if (0-0.5) <= y_bottom <= 0.5:
         pl.ylim(y_bottom, y_top+50)
     else:
         pl.ylim(y_bottom-50, y_top+50)
     pl.margins(0.01,0)
-    pl.subplots_adjust(bottom=0.25, left=0.15)
+    pl.subplots_adjust(bottom=0.22, left=0.12)
     pl.tight_layout()
-    pl.ylabel('Mean skin conductance % difference\n(activity - baseline)', fontsize=7)
-    pl.yticks(fontsize=8)
+    pl.ylabel('Mean skin conductance % difference\n(activity - baseline)', fontsize=6)
+    pl.yticks(fontsize=6)
     fig4.savefig(os.path.join(output_dir, 'activity_means.png'), dpi = pref_dpi, bbox_inches='tight')
     pl.close(fig4)
 
     # median percent difference
     fig5, ax = pl.subplots( nrows=1, ncols=1 )
     pl.bar(list(y_pos.keys()), percent_diff_medians, align='center', color=[0.12,0.35,1], alpha=1)
-    pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=7)
+    pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=6)
     pl.ylim(min(percent_diff_medians-1), max(percent_diff_medians+1))
     pl.margins(0.01,0)
     pl.subplots_adjust(bottom=0.25, left=0.15)
     pl.tight_layout()
-    pl.yticks(fontsize=8)
+    pl.yticks(fontsize=6)
     pl.ylabel('Median skin conductance % difference\n(activity - baseline)', fontsize=7)
     fig5.savefig(os.path.join(output_dir, 'activity_medians.png'), dpi = pref_dpi, bbox_inches='tight')
     pl.close(fig5)
@@ -492,10 +502,10 @@ def save_output_csv(statistics_output, output_dir, keywords, activity_stats, ber
 
     filename = "skin_conductance_statistics.csv"
 
-    cols = [keywords, statistics_output[0], statistics_output[1], statistics_output[2], statistics_output[3]]
+    cols = [keywords, statistics_output[0], statistics_output[1], statistics_output[2], statistics_output[3], statistics_output[4], statistics_output[5]]
     out_df = pd.DataFrame(cols)
     out_df = out_df.T
-    out_df.to_csv(os.path.join(output_dir, filename), index=False, header=['Activity', 'Mean % diff', 'Median % diff', 'Std. dev. of mean % diff', 'Std. err. of mean % diff'])
+    out_df.to_csv(os.path.join(output_dir, filename), index=False, header=['Activity', 'Mean % diff', 'Median % diff', 'Std. dev. of mean % diff', 'Std. err. of mean % diff', 'Total time', 'Total time (sec)'])
 
     # raw skin conductance values for each sensor id, each activity
     export_csv = activity_stats.to_csv(os.path.join(output_dir, 'activity_stats.csv'), index = None, header=True)
@@ -586,6 +596,7 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_xcel, beri_sh
     save_output_csv(statistics_output, output_dir, keywords, activity_stats, beri_df)
 
     return beri_df
+
 
 
 if __name__=='__main__':
