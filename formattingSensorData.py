@@ -253,28 +253,41 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df):
 
 
 
-def get_beri_protocol(working_dir, beri_xcel, beri_sheetname):
+def get_beri_protocol(working_dir, beri_files):
     """
     Input: working directory (working_dir) where all data are downloaded from Empatica website;
             spreadsheet (timing_beri) where BERI protocol observations are recorded (see example)
 
     Goal: Find how many students exhibited engaged/disengaged behaviors
 
-    What it does: Opens the spreadsheet where all BERI observations are recorded, sums the number of
+    What it does: Opens the folder where all BERI observations are recorded, sums the number of
     engaged/disengaged students during each type of activity, then normalizes it by the number of
     instances of that activity
     """
 
     os.chdir(working_dir)
-    beri_obs = os.path.join(working_dir, str(beri_xcel))
 
-    beri_df = pd.read_excel(beri_obs, sheet_name = beri_sheetname)
+    if beri_exists:
+        beri_dir = os.path.join(working_dir, 'beri_files')
+        os.chdir(beri_dir)
 
-    beri_df['total_eng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-E')] | beri_df.columns[beri_df.columns.str.contains('-L')] | beri_df.columns[beri_df.columns.str.contains('-W')])].sum(axis=1)
-    beri_df['total_diseng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-D')] | beri_df.columns[beri_df.columns.str.contains('-U')] | beri_df.columns[beri_df.columns.str.contains('-S')])].sum(axis=1)
+        beri_df = []
+
+        for dirpath, dirnames, filenames in os.walk(beri_dir):
+            for filename in filenames:
+                if 'boyd.xlsx' in filename:
+                    path_to_beri_file = os.path.join(dirpath, filename)
+                    data = pd.read_excel(filename, parse_dates=[['class_date','time']])
+                    beri_df.append(data)
+
+        beri_df = pd.concat(beri_df)
+        beri_df['total_eng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-E')] | beri_df.columns[beri_df.columns.str.contains('-L')] | beri_df.columns[beri_df.columns.str.contains('-W')])].sum(axis=1)
+        beri_df['total_diseng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-D')] | beri_df.columns[beri_df.columns.str.contains('-U')] | beri_df.columns[beri_df.columns.str.contains('-S')])].sum(axis=1)
+        beri_df.to_excel("beri_obs_total_fall_2018.xlsx")
 
     print("Finished BERI")
     print(" ")
+
     return beri_df
 
 
@@ -293,36 +306,36 @@ def plot_results(obs_EDA, phasic, tonic, Fs, pref_dpi, EDA_data_df, output_dir, 
     bar graph for percent difference for each activity.
     """
 
-    timing = pl.arange(1., len(obs_EDA) + 1.) / (60 * Fs) # minutes = divide by 240 = 60 seconds * 4 records/sec
-
-# plotting total conductance (phasic + tonic + noise)
-    fig1, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.plot(timing, obs_EDA, color = 'r')
-    pl.xlim(0, max(timing) + 1)
-    pl.ylabel('Skin conductance - total (\u03bcS)')
-    pl.xlabel('Time (min)')
-    fig1.savefig(os.path.join(output_dir, 'total_conductance.png'), dpi = pref_dpi)
-    pl.close(fig1)
-
-# plotting phasic component of skin conductance
-    ylim_top = max(phasic)
-    fig2, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.plot(timing, phasic, color = 'b')
-    pl.xlim(0, max(timing) + 1)
-    pl.ylabel('Skin conductance - phasic component (\u03bcS)')
-    pl.xlabel('Time (min)')
-    fig2.savefig(os.path.join(output_dir, 'phasic_component.png'), dpi = pref_dpi)
-    pl.close(fig2)
-
-# plotting tonic component of skin conductance
-    ylim_top = max(tonic)
-    fig3, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.plot(timing, tonic, color = 'g')
-    pl.xlim(-1, max(timing) + 1)
-    pl.ylabel('Skin conductance - tonic component (\u03bcS)')
-    pl.xlabel('Time (min)')
-    fig3.savefig(os.path.join(output_dir, 'tonic_component.png'), dpi = pref_dpi)
-    pl.close(fig3)
+#     timing = pl.arange(1., len(obs_EDA) + 1.) / (60 * Fs) # minutes = divide by 240 = 60 seconds * 4 records/sec
+#
+# # plotting total conductance (phasic + tonic + noise)
+#     fig1, ax = pl.subplots( nrows=1, ncols=1 )
+#     pl.plot(timing, obs_EDA, color = 'r')
+#     pl.xlim(0, max(timing) + 1)
+#     pl.ylabel('Skin conductance - total (\u03bcS)')
+#     pl.xlabel('Time (min)')
+#     fig1.savefig(os.path.join(output_dir, 'total_conductance.png'), dpi = pref_dpi)
+#     pl.close(fig1)
+#
+# # plotting phasic component of skin conductance
+#     ylim_top = max(phasic)
+#     fig2, ax = pl.subplots( nrows=1, ncols=1 )
+#     pl.plot(timing, phasic, color = 'b')
+#     pl.xlim(0, max(timing) + 1)
+#     pl.ylabel('Skin conductance - phasic component (\u03bcS)')
+#     pl.xlabel('Time (min)')
+#     fig2.savefig(os.path.join(output_dir, 'phasic_component.png'), dpi = pref_dpi)
+#     pl.close(fig2)
+#
+# # plotting tonic component of skin conductance
+#     ylim_top = max(tonic)
+#     fig3, ax = pl.subplots( nrows=1, ncols=1 )
+#     pl.plot(timing, tonic, color = 'g')
+#     pl.xlim(-1, max(timing) + 1)
+#     pl.ylabel('Skin conductance - tonic component (\u03bcS)')
+#     pl.xlabel('Time (min)')
+#     fig3.savefig(os.path.join(output_dir, 'tonic_component.png'), dpi = pref_dpi)
+#     pl.close(fig3)
 
 
     # get timing and EDA for each activity
@@ -442,18 +455,18 @@ def plot_results(obs_EDA, phasic, tonic, Fs, pref_dpi, EDA_data_df, output_dir, 
     fig4.savefig(os.path.join(output_dir, 'activity_means.png'), dpi = pref_dpi, bbox_inches='tight')
     pl.close(fig4)
 
-    # median percent difference
-    fig5, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.bar(list(y_pos.keys()), percent_diff_medians, align='center', color=[0.12,0.35,1], alpha=1)
-    pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=6)
-    pl.ylim(min(percent_diff_medians-1), max(percent_diff_medians+1))
-    pl.margins(0.01,0)
-    pl.subplots_adjust(bottom=0.25, left=0.15)
-    pl.tight_layout()
-    pl.yticks(fontsize=6)
-    pl.ylabel('Median skin conductance % difference\n(activity - baseline)', fontsize=7)
-    fig5.savefig(os.path.join(output_dir, 'activity_medians.png'), dpi = pref_dpi, bbox_inches='tight')
-    pl.close(fig5)
+    # # median percent difference
+    # fig5, ax = pl.subplots( nrows=1, ncols=1 )
+    # pl.bar(list(y_pos.keys()), percent_diff_medians, align='center', color=[0.12,0.35,1], alpha=1)
+    # pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=6)
+    # pl.ylim(min(percent_diff_medians-1), max(percent_diff_medians+1))
+    # pl.margins(0.01,0)
+    # pl.subplots_adjust(bottom=0.25, left=0.15)
+    # pl.tight_layout()
+    # pl.yticks(fontsize=6)
+    # pl.ylabel('Median skin conductance % difference\n(activity - baseline)', fontsize=7)
+    # fig5.savefig(os.path.join(output_dir, 'activity_medians.png'), dpi = pref_dpi, bbox_inches='tight')
+    # pl.close(fig5)
 
 
     # for BERI protocol analysis:
