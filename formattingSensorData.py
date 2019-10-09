@@ -285,8 +285,11 @@ def get_beri_protocol(working_dir, beri_files):
         beri_df['total_diseng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-D')] | beri_df.columns[beri_df.columns.str.contains('-U')] | beri_df.columns[beri_df.columns.str.contains('-S')])].sum(axis=1)
         beri_df.to_excel("beri_obs_total_fall_2018.xlsx")
 
-    print("Finished BERI")
-    print(" ")
+
+    student_overview = pd.read_excel(os.path.join(working_dir, "StudentDataOverview.xlsx"))
+    # set flag above to seat number = integer 1-20, default to NaN
+    student_overview = student_overview.set_index('Sensor').T
+    #print(student_overview)
 
     return beri_df
 
