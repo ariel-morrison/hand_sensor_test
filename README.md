@@ -9,11 +9,12 @@
 2. Spreadsheet with component timing, including file extension: $timing_xcel -- e.g., study_timing.xlsx, study_timing.xls (no quotes, needs the file extension)
 3. Sheet name in $timing_xcel: $sheetname -- e.g., exp_session (no quotes)
 4. BERI protocol observations directory: $beri_files -- e.g., "beri_files" (put it in quotes)
-5. Sampling frequency per second: $Fs  --  e.g., 4 (4 default for E4 sensors, integer, units = samples per second)
-6. Time interval of recording: $delta  --  e.g., 0.25 (0.25 default for E4 sensors, float, units = samples recorded every 0.25 seconds)
-7. Preferred dpi (resolution) for saved figures: $pref_dpi -- e.g., 500, 1000, 2000 (1000 is a good readable resolution for png files)
-8. Separate baseline recording, true or false: $separate_baseline -- e.g., True (**NOTE**: only True or False are acceptable inputs. If baselines are recorded separately, must be stored in a subdirectory of the working directory called "calibration")
-9. Spreadsheet where grades are stored: $grade_files -- e.g., "ENV1000_grades" (put it in quotes)
+5. Using BERI observations, true or false: $beri_exists -- e.g., True
+6. Sampling frequency per second: $Fs  --  e.g., 4 (4 default for E4 sensors, integer, units = samples per second)
+7. Time interval of recording: $delta  --  e.g., 0.25 (0.25 default for E4 sensors, float, units = samples recorded every 0.25 seconds)
+8. Preferred dpi (resolution) for saved figures: $pref_dpi -- e.g., 500, 1000, 2000 (1000 is a good readable resolution for png files)
+9. Separate baseline recording, true or false: $separate_baseline -- e.g., True (**NOTE**: only True or False are acceptable inputs. If baselines are recorded separately, must be stored in a subdirectory of the working directory called "calibration")
+10. Spreadsheet where grades are stored: $grade_files -- e.g., "ENV1000_grades" (put it in quotes)
 
 
 **To RUN:**
@@ -46,15 +47,15 @@ Example command:
 
 5) Run the script
 
-`python formattingSensorData.py $working_dir $timing_xcel $sheetname $timing_beri $beri_sheetname $FS $delta $pref_dpi $separate_baseline`
+`python formattingSensorData.py $working_dir $timing_xcel $sheetname $beri_files $beri_exists $FS $delta $pref_dpi $separate_baseline`
 
 
 Example commands:
 
-`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/1060data" ATOC1060TimingComponents.xlsx total_timing "beri_files" 4 0.25 800 True "ATOC-1060-2018_AllData_woID_wConsent_FinalFinal_withGrades.xlsx"`
+`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/1060data" ATOC1060TimingComponents.xlsx total_timing "beri_files" True 4 0.25 800 True "ATOC-1060-2018_AllData_woID_wConsent_FinalFinal_withGrades.xlsx"`
 
 
-`python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" test_timing.xlsx exp_session "beri_examples" 4 0.25 2000 False "ENV1000_grades"`
+`python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" test_timing.xlsx exp_session "beri_examples" True 4 0.25 2000 False "ENV1000_grades"`
 
 
 **Files saved to output directory:**
