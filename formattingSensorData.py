@@ -24,6 +24,7 @@ import plotly.plotly as py
 import plotly.graph_objs as go
 
 
+
 def cvxEDA(obs_EDA, delta, tau0=2., tau1=0.7, delta_knot=10., alpha=8e-4, gamma=1e-2,
            solver=None, options={'reltol': 1e-9, 'show_progress': False}):
 
@@ -90,10 +91,7 @@ def cvxEDA(obs_EDA, delta, tau0=2., tau1=0.7, delta_knot=10., alpha=8e-4, gamma=
     C = cv.matrix(np.c_[np.ones(n), np.arange(1., n+1.)/n])
     nC = C.size[1]
 
-    # Solve the problem:
-    # .5*(M*q + B*l + C*d - obs_EDA)^2 + alpha*sum(A,1)*p + .5*gamma*l'*l
-    # s.t. A*q >= 0
-
+    # solve the problem
     old_options = cv.solvers.options.copy()
     cv.solvers.options.clear()
     cv.solvers.options.update(options)
@@ -129,6 +127,7 @@ def cvxEDA(obs_EDA, delta, tau0=2., tau1=0.7, delta_knot=10., alpha=8e-4, gamma=
 
     # return [np.array(a).ravel() for a in (phasic, p, tonic, l, d, e, obj)]
     return [np.array(a).ravel() for a in (phasic, tonic, e)]
+
 
 
 def extract_zip_format_filenames(working_dir):
@@ -241,10 +240,12 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df):
     activity_stddev = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].std()
     activity_stderr = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].sem()
 
-    # to get the total number of seconds spent on each class activity
+    # to get the total time spent on each class activity
     xcel['total_time'] = pd.to_datetime(xcel['datetime_end'], infer_datetime_format=True) - pd.to_datetime(xcel['datetime_start'], infer_datetime_format=True)
     total_time = xcel[['Activity Start','total_time']]
     total_time = total_time.reset_index().groupby(['Activity Start'])['total_time'].sum()
+
+    # to get the total number of seconds spent on each class activity
     xcel['total_time_seconds'] = xcel['total_time'].dt.total_seconds()
     total_time_seconds = xcel[['Activity Start', 'total_time_seconds']]
     total_time_seconds = total_time_seconds.reset_index().groupby(['Activity Start'])['total_time_seconds'].sum()
@@ -287,11 +288,59 @@ def get_beri_protocol(working_dir, beri_files):
 
 
     student_overview = pd.read_excel(os.path.join(working_dir, "StudentDataOverview.xlsx"))
-    # set flag above to seat number = integer 1-20, default to NaN
     student_overview = student_overview.set_index('Sensor').T
-    #print(student_overview)
+    print(student_overview)
 
     return beri_df
+
+
+
+def get_grades(working_dir, grade_files):
+    """
+    Input: working directory (working_dir) where all data are downloaded from Empatica website;
+            spreadsheet (grade_files) where grades and students' sensor numbers are recorded
+
+    Goal: Compare students' engagement levels with their grades
+
+    What it does: Opens the grade spreadsheet, reads the sensor number and associated grade
+    """
+
+    os.chdir(working_dir)
+    grades_all = pd.read_excel(os.path.join(working_dir, grade_files))
+
+    grades = []
+    grades = grades_all.loc[grades_all['Sensor Count'] != 0]
+    grades = grades[['Name','Class Level','STEM/non-STEM [STEM major=1, non-STEM major=2, undeclared=3]','Gender [male=1, female=2, other=3]','Midterm #1','Midterm #2','Final Exam','Homework','Final Course Grade','Sensor Count']]
+    grades = grades.rename(columns={'STEM/non-STEM [STEM major=1, non-STEM major=2, undeclared=3]': 'STEM=1, non-STEM=2, undec=3', 'Final Course Grade':'Final Grade'})
+
+
+    data = grades.loc[grades['STEM=1, non-STEM=2, undec=3'] == 1]; grades.loc[grades['STEM=1, non-STEM=2, undec=3'] == 2]
+    print(data)
+
+    stem = grades.loc[grades['STEM=1, non-STEM=2, undec=3'] == 1]
+    nonstem = grades.loc[grades['STEM=1, non-STEM=2, undec=3'] == 2]
+    undec = grades.loc[grades['STEM=1, non-STEM=2, undec=3'] == 3]
+
+
+    index = [('STEM', 'Midterm #1'), ('STEM', 'Midterm #2'), ('STEM', 'Final Exam'), ('STEM', 'Final Grade'),
+             ('Non-STEM', 'Midterm #1'), ('Non-STEM', 'Midterm #2'), ('Non-STEM', 'Final Exam'), ('Non-STEM','Final Grade'),
+             ('Undeclared', 'Midterm #1'), ('Undeclared', 'Midterm #2'), ('Undeclared', 'Final Exam'), ('Undeclared', 'Final Grade')]
+    numbers = [stem['Midterm #1'].mean(), stem['Midterm #2'].mean(), stem['Final Exam'].mean(), stem['Final Grade'].mean(),
+                   nonstem['Midterm #1'].mean(), nonstem['Midterm #2'].mean(), nonstem['Final Exam'].mean(), nonstem['Final Grade'].mean(),
+                   undec['Midterm #1'].mean(), undec['Midterm #2'].mean(), undec['Final Exam'].mean(), undec['Final Grade'].mean()]
+    sep_grades = pd.Series(numbers, index=index)
+    index = pd.MultiIndex.from_tuples(index)
+    sep_grades = sep_grades.reindex(index).round(2)
+
+    sep_grades_df = pd.DataFrame({'Avg. Grade': sep_grades,
+                                 'Std. Dev': [stem['Midterm #1'].std(), stem['Midterm #2'].std(), stem['Final Exam'].std(), stem['Final Grade'].std(),
+                                             nonstem['Midterm #1'].std(), nonstem['Midterm #2'].std(), nonstem['Final Exam'].std(), nonstem['Final Grade'].std(),
+                                             undec['Midterm #1'].std(), undec['Midterm #2'].std(), undec['Final Exam'].std(), undec['Final Grade'].std()],
+                                 'Std. Err': [stem['Midterm #1'].sem(), stem['Midterm #2'].sem(), stem['Final Exam'].sem(), stem['Final Grade'].sem(),
+                                             nonstem['Midterm #1'].sem(), nonstem['Midterm #2'].sem(), nonstem['Final Exam'].sem(), nonstem['Final Grade'].sem(),
+                                             undec['Midterm #1'].sem(), undec['Midterm #2'].sem(), undec['Final Exam'].sem(), undec['Final Grade'].sem()]}).round(2)
+
+    return sep_grades_df
 
 
 
@@ -473,7 +522,7 @@ def plot_results(obs_EDA, phasic, tonic, Fs, pref_dpi, EDA_data_df, output_dir, 
 
 
     # for BERI protocol analysis:
-    beri_df = get_beri_protocol(working_dir, beri_xcel, beri_sheetname)
+    beri_df = get_beri_protocol(working_dir, beri_files)
 
     fig6, ax = pl.subplots( nrows=1, ncols=1 )
     pl.plot(beri_df['time'], beri_df['total_eng'], color = 'r')
@@ -535,7 +584,7 @@ def save_output_csv(statistics_output, output_dir, keywords, activity_stats, ber
 
 
 
-def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_xcel, beri_sheetname, Fs, delta, pref_dpi, separate_baseline):
+def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_files, Fs, delta, pref_dpi, separate_baseline, grade_files):
     """
     Goal: Format all data downloaded from empatica website, plot data, and save statistics
 
@@ -558,7 +607,6 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_xcel, beri_sh
     output_dir = os.path.join(os.path.split(working_dir)[0], 'output_dir')
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-
 
     zip_list, EDA_list, HR_list, tag_list = extract_zip_format_filenames(working_dir)
     print('Parsed ' + str(len(zip_list)) + ' zip archives ')
@@ -606,15 +654,14 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_xcel, beri_sh
     EDA_data_df = EDA_data_df.groupby(level=0).apply(format_cvx, Fs=Fs)
 
     cvx_first = EDA_data_df.groupby(level=0).first()
-    #print('cvx_first', cvx_first)
 
     statistics_output, keywords, activity_stats, beri_df = plot_results(cvx_first['skin_conduct'], cvx_first['phasic'], cvx_first['tonic'], Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline)
     save_output_csv(statistics_output, output_dir, keywords, activity_stats, beri_df)
+    get_grades(working_dir, grade_files)
 
     return beri_df
 
 
-
 if __name__=='__main__':
-    working_dir, timing_xcel, sheetname, beri_xcel, beri_sheetname, Fs, delta, pref_dpi, separate_baseline = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8], sys.argv[9]
-    format_and_plot_data(working_dir, timing_xcel, sheetname, beri_xcel, beri_sheetname, Fs, delta, pref_dpi, separate_baseline)
+    working_dir, timing_xcel, sheetname, beri_files, Fs, delta, pref_dpi, separate_baseline, grade_files = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8], sys.argv[9]
+    format_and_plot_data(working_dir, timing_xcel, sheetname, beri_files, Fs, delta, pref_dpi, separate_baseline, grade_files)
