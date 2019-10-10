@@ -282,6 +282,7 @@ def get_beri_protocol(working_dir, beri_files):
                     beri_df.append(data)
 
         beri_df = pd.concat(beri_df)
+        print("Made BERI dataframe")
         beri_df['total_eng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-E')] | beri_df.columns[beri_df.columns.str.contains('-L')] | beri_df.columns[beri_df.columns.str.contains('-W')])].sum(axis=1)
         beri_df['total_diseng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-D')] | beri_df.columns[beri_df.columns.str.contains('-U')] | beri_df.columns[beri_df.columns.str.contains('-S')])].sum(axis=1)
         beri_df.to_excel("beri_obs_total_fall_2018.xlsx")
@@ -663,5 +664,5 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_files, Fs, de
 
 
 if __name__=='__main__':
-    working_dir, timing_xcel, sheetname, beri_files, Fs, delta, pref_dpi, separate_baseline, grade_files = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8], sys.argv[9]
-    format_and_plot_data(working_dir, timing_xcel, sheetname, beri_files, Fs, delta, pref_dpi, separate_baseline, grade_files)
+    working_dir, timing_xcel, sheetname, beri_files, beri_exists, Fs, delta, pref_dpi, separate_baseline, grade_files = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8], sys.argv[9], sys.argv[10]
+    format_and_plot_data(working_dir, timing_xcel, sheetname, beri_files, beri_exists, Fs, delta, pref_dpi, separate_baseline, grade_files)
