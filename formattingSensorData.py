@@ -508,46 +508,46 @@ def plot_results(obs_EDA, phasic, tonic, Fs, pref_dpi, EDA_data_df, output_dir, 
     fig4.savefig(os.path.join(output_dir, 'activity_means.png'), dpi = pref_dpi, bbox_inches='tight')
     pl.close(fig4)
 
-    # # median percent difference
-    # fig5, ax = pl.subplots( nrows=1, ncols=1 )
-    # pl.bar(list(y_pos.keys()), percent_diff_medians, align='center', color=[0.12,0.35,1], alpha=1)
-    # pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=6)
-    # pl.ylim(min(percent_diff_medians-1), max(percent_diff_medians+1))
-    # pl.margins(0.01,0)
-    # pl.subplots_adjust(bottom=0.25, left=0.15)
-    # pl.tight_layout()
-    # pl.yticks(fontsize=6)
-    # pl.ylabel('Median skin conductance % difference\n(activity - baseline)', fontsize=7)
-    # fig5.savefig(os.path.join(output_dir, 'activity_medians.png'), dpi = pref_dpi, bbox_inches='tight')
-    # pl.close(fig5)
+    # median percent difference
+    fig5, ax = pl.subplots( nrows=1, ncols=1 )
+    pl.bar(list(y_pos.keys()), percent_diff_medians, align='center', color=[0.12,0.35,1], alpha=1)
+    pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=6)
+    pl.ylim(min(percent_diff_medians-1), max(percent_diff_medians+1))
+    pl.margins(0.01,0)
+    pl.subplots_adjust(bottom=0.25, left=0.15)
+    pl.tight_layout()
+    pl.yticks(fontsize=6)
+    pl.ylabel('Median skin conductance % difference\n(activity - baseline)', fontsize=7)
+    fig5.savefig(os.path.join(output_dir, 'activity_medians.png'), dpi = pref_dpi, bbox_inches='tight')
+    pl.close(fig5)
 
 
     # for BERI protocol analysis:
     beri_df = get_beri_protocol(working_dir, beri_files)
-
-    fig6, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.plot(beri_df['time'], beri_df['total_eng'], color = 'r')
-    pl.ylabel('# engaged students')
-    pl.xlabel('Time (min)')
-    pl.ylim(0,18)
-    pl.margins(0.15)
-    pl.subplots_adjust(bottom=0.2)
-    pl.tight_layout()
-    fig6.savefig(os.path.join(output_dir, 'number_engaged_students.png'), dpi = pref_dpi)
-    pl.close(fig6)
-
-
-    fig7, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.plot(beri_df['time'], beri_df['total_diseng'], color = 'k')
-    pl.ylabel('# disengaged students')
-    pl.xlabel('Time (min)')
-    pl.ylabel("# disengaged students")
-    pl.ylim(0,18)
-    pl.margins(0.15)
-    pl.subplots_adjust(bottom=0.2)
-    pl.tight_layout()
-    fig7.savefig(os.path.join(output_dir, 'number_disengaged_students.png'), dpi = pref_dpi)
-    pl.close(fig7)
+    #
+    # fig6, ax = pl.subplots( nrows=1, ncols=1 )
+    # pl.plot(beri_df['time'], beri_df['total_eng'], color = 'r')
+    # pl.ylabel('# engaged students')
+    # pl.xlabel('Time (min)')
+    # pl.ylim(0,18)
+    # pl.margins(0.15)
+    # pl.subplots_adjust(bottom=0.2)
+    # pl.tight_layout()
+    # fig6.savefig(os.path.join(output_dir, 'number_engaged_students.png'), dpi = pref_dpi)
+    # pl.close(fig6)
+    #
+    #
+    # fig7, ax = pl.subplots( nrows=1, ncols=1 )
+    # pl.plot(beri_df['time'], beri_df['total_diseng'], color = 'k')
+    # pl.ylabel('# disengaged students')
+    # pl.xlabel('Time (min)')
+    # pl.ylabel("# disengaged students")
+    # pl.ylim(0,18)
+    # pl.margins(0.15)
+    # pl.subplots_adjust(bottom=0.2)
+    # pl.tight_layout()
+    # fig7.savefig(os.path.join(output_dir, 'number_disengaged_students.png'), dpi = pref_dpi)
+    # pl.close(fig7)
 
     return statistics_output, keywords, activity_stats, beri_df
 
@@ -575,7 +575,7 @@ def save_output_csv(statistics_output, output_dir, keywords, activity_stats, ber
 
     # raw skin conductance values for each sensor id, each activity
     export_csv = activity_stats.to_csv(os.path.join(output_dir, 'activity_stats.csv'), index = None, header=True)
-    cols_to_keep = ['time','class_subject_code','class_number','class_date','total_eng','total_diseng']
+    cols_to_keep = ['class_date_time','total_eng','total_diseng']
     export_beri = beri_df[cols_to_keep].to_csv(os.path.join(output_dir, 'beri_protocol_stats.csv'), index = None, header=True)
 
     print("Saved all files to output directory")
@@ -585,7 +585,7 @@ def save_output_csv(statistics_output, output_dir, keywords, activity_stats, ber
 
 
 
-def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_files, Fs, delta, pref_dpi, separate_baseline, grade_files):
+def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_files, beri_exists, Fs, delta, pref_dpi, separate_baseline, grade_files):
     """
     Goal: Format all data downloaded from empatica website, plot data, and save statistics
 
