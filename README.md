@@ -76,7 +76,7 @@ Example commands:
 
 
 3 .csv files with statistics:
-- for each activity: mean and median percent difference between activity and baseline skin conductance, std. deviation and std. error for mean percent difference, total time (in seconds) spent on each activity
+- for each activity: mean and median percent difference between activity and baseline skin conductance, mean percent difference without outliers, std. deviation and std. error for mean percent difference, total time (in seconds) spent on each activity
 - mean/standard deviation/standard error of skin conductance values for all sensors, all activities
 - mean/standard deviation/standard error of number of engaged/disengaged students during class activities, based on BERI protocol
 
