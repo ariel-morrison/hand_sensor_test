@@ -9,12 +9,13 @@
 2. Spreadsheet with component timing, including file extension: $timing_xcel -- e.g., study_timing.xlsx, study_timing.xls (no quotes, needs the file extension)
 3. Sheet name in $timing_xcel: $sheetname -- e.g., exp_session (no quotes)
 4. BERI protocol observations directory: $beri_files -- e.g., "beri_files" (put it in quotes)
-5. Using BERI observations, true or false: $beri_exists -- e.g., True
+5. Using BERI observations, true or false: $beri_exists -- e.g., True (**NOTE**: only True or False are acceptable inputs)
 6. Sampling frequency per second: $Fs  --  e.g., 4 (4 default for E4 sensors, integer, units = samples per second)
 7. Time interval of recording: $delta  --  e.g., 0.25 (0.25 default for E4 sensors, float, units = samples recorded every 0.25 seconds)
 8. Preferred dpi (resolution) for saved figures: $pref_dpi -- e.g., 500, 1000, 2000 (1000 is a good readable resolution for png files)
-9. Separate baseline recording, true or false: $separate_baseline -- e.g., True (**NOTE**: only True or False are acceptable inputs. If baselines are recorded separately, must be stored in a subdirectory of the working directory called "calibration")
-10. Spreadsheet where grades are stored: $grade_files -- e.g., "ENV1000_grades" (put it in quotes)
+9. Separate baseline recording? Baselines are separate if they are read in from a different file and then applied to one or more student records. True or False: $separate_baseline -- e.g., True (**NOTE**: only True or False are acceptable inputs. If baselines are recorded separately, must be stored in a subdirectory of the working directory called "calibration")
+10. Continuous baseline recording? Baselines are continuous if they are part of the same skin conductance record to which they are being compared. For example, if the first 3 minutes of the skin conductance record are the 'baseline,' then choose True for the continuous baseline. True or False: $continuous_baseline -- e.g., False
+11. Spreadsheet where grades are stored: $grade_files -- e.g., "ENV1000_grades.xlsx" (put it in quotes)
 
 
 **To RUN:**
@@ -47,15 +48,15 @@ Example command:
 
 5) Run the script
 
-`python formattingSensorData.py $working_dir $timing_xcel $sheetname $beri_files $beri_exists $FS $delta $pref_dpi $separate_baseline`
+`python formattingSensorData.py $working_dir $timing_xcel $sheetname $beri_files $beri_exists $FS $delta $pref_dpi $separate_baseline $continuous_baseline $grade_files`
 
 
 Example commands:
 
-`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/1060data" ATOC1060TimingComponents.xlsx total_timing "beri_files" True 4 0.25 800 True "ATOC-1060-2018_AllData_woID_wConsent_FinalFinal_withGrades.xlsx"`
+`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/1060data" ATOC1060TimingComponents.xlsx total_timing "beri_files" True 4 0.25 800 True False "ATOC-1060-2018_AllData_woID_wConsent_FinalFinal_withGrades.xlsx"`
 
 
-`python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" test_timing.xlsx exp_session "beri_examples" True 4 0.25 2000 False "ENV1000_grades"`
+`python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" test_timing.xlsx exp_session "beri_examples" True 4 0.25 2000 False False "ENV1000_grades.xlsx"`
 
 
 **Files saved to output directory:**
@@ -65,14 +66,14 @@ Example commands:
 - phasic component of skin conductance (line)
 - tonic component of skin conductance (line)
 
-*The 3 above figures are only made for one sensor at a time - i.e., there is no averaging. They are snapshots of one sensor's data.*
+*The 3 above figures are only made for one student at a time - i.e., there is no averaging. They are snapshots of one sensor's data.*
 
 - mean percent difference between activity and baseline skin conductance (bar/column)
 - median percent difference between activity and baseline skin conductance (bar/column)
 - mean number of students exhibiting engaged behaviors during each class activity, based on BERI protocol
 - mean number of students exhibiting disengaged behaviors during each class activity, based on BERI protocol
 
-*The above figures are averages across all sensors.*
+*The above figures are averages across all students.*
 
 
 3 .csv files with statistics:
