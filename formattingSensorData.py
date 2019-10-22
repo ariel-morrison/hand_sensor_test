@@ -233,6 +233,8 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df):
 
     x_out = xcel.apply(lambda row : EDA_data_df[(EDA_data_df['timestamp']>=row['datetime_start'])&(EDA_data_df['timestamp']<row['datetime_end'])].assign(activity=row['Activity Start']), axis=1)
 
+    baseline_class = EDA_data_df.reset_index().groupby(['sensor_ids'])['skin_conduct'].mean()
+
     activity_mean = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].mean()
     activity_stddev = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].std()
     activity_stderr = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].sem()
@@ -247,7 +249,7 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df):
     total_time_seconds = xcel[['Activity Start', 'total_time_seconds']]
     total_time_seconds = total_time_seconds.reset_index().groupby(['Activity Start'])['total_time_seconds'].sum()
 
-    return activity_mean, activity_stddev, activity_stderr, total_time, total_time_seconds
+    return activity_mean, activity_stddev, activity_stderr, total_time, total_time_seconds, baseline_class
 
 
 
@@ -279,7 +281,6 @@ def get_beri_protocol(working_dir, beri_files):
                     beri_df.append(data)
 
         beri_df = pd.concat(beri_df)
-        print("Made BERI dataframe")
         beri_df['total_eng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-E')] | beri_df.columns[beri_df.columns.str.contains('-L')] | beri_df.columns[beri_df.columns.str.contains('-W')])].sum(axis=1)
         beri_df['total_diseng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-D')] | beri_df.columns[beri_df.columns.str.contains('-U')] | beri_df.columns[beri_df.columns.str.contains('-S')])].sum(axis=1)
         beri_df.to_excel("beri_obs_total_fall_2018.xlsx")
@@ -398,7 +399,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline):
 
 
     # get timing and EDA for each activity
-    activity_mean, activity_stddev, activity_stderr, total_time, total_time_seconds = get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df)
+    activity_mean, activity_stddev, activity_stderr, total_time, total_time_seconds, baseline_class = get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df)
     activity_mean = activity_mean.reset_index()
     activity_mean = activity_mean.rename(columns={'level_0': 'file_name'})
     activity_stddev2 = activity_stddev.reset_index().rename(columns = {"level_0":"file_name","skin_conduct":"stddev_skin_conduct"})
@@ -438,21 +439,25 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline):
                         baseline_filename = os.path.join(calibration_dir, str(sensorNum) + '_EDA.csv')
                         # reads in baseline data records from each student
                         temp_df = pd.read_csv(baseline_filepath, header=2, names=['skin_conduct_baseline'])
+                        temp_df = temp_df[1200:-1200]
                         os.rename(baseline_filepath, baseline_filename)
                         temp_df['file_name_no_ts'] = str(sensorNum_no_ts)
-                        baseline_df = baseline_df[120:-120].append(temp_df)
-                        print("max - 2*min baseline:")
-                        print(max(baseline_df) - 2*min(baseline_df))
+                        baseline_df = baseline_df.append(temp_df)
 
                     shutil.rmtree(calibration_sub_dir)
 
         # finds mean baseline for each student, puts all baselines in a dataframe and sorts by sensor number
         baselines = baseline_df.groupby(['file_name_no_ts'])['skin_conduct_baseline'].mean().reset_index()
-        print("baselines:")
-        print(baselines)
-        print(" ")
-        print("Baselines completed")
-        print(" ")
+        baseline_df_max = baseline_df.groupby(['file_name_no_ts'])['skin_conduct_baseline'].max().reset_index()
+        baseline_df_min = baseline_df.groupby(['file_name_no_ts'])['skin_conduct_baseline'].min().reset_index()
+
+        for i in range(0,len(baseline_df_max)):
+            if baseline_df_max['skin_conduct_baseline'][i] > 2.5*baseline_df_min['skin_conduct_baseline'][i]:
+                baselines['skin_conduct_baseline'][i] = np.nan
+
+        # need to average EDA over entire semester = baseline_class
+        # get a different % diff based on baseline_class and baselines
+
         # remove baseline from dataframe, if it existed as part of the continuous data record
         activity_mean_no_bl = activity_mean[activity_mean['activity'] != "Baseline"]
         # rename columns
@@ -464,6 +469,9 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline):
         # merge the dataframe containing sensor ID, activity mean skin conductance, and baselines for each student
         activity_mean_merged = activity_mean_no_bl.merge(baselines, on = ["file_name_no_ts"])
 
+        activity_mean_merged_baseline_class = activity_mean_no_bl.rename(columns = {"file_name_no_ts":"sensor_ids"})
+        activity_mean_merged_baseline_class = activity_mean_merged_baseline_class.merge(baseline_class.to_frame(), on = ['sensor_ids']).rename(columns = {"skin_conduct" : "baseline_class"})
+
 
     else:
         baselines = activity_mean[activity_mean['activity'] == "Baseline"][["file_name", "skin_conduct"]]
@@ -471,14 +479,6 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline):
         activity_mean_no_bl = activity_mean[activity_mean['activity'] != "Baseline"]
         activity_mean_no_bl = activity_mean_no_bl.rename(columns = {"skin_conduct":"skin_conduct_means"})
         activity_mean_merged = activity_mean_no_bl.merge(baselines, on = ["file_name"])
-
-
- ######## original script
-    #baselines = activity_mean[activity_mean['activity'] == "Baseline"][["sensor_id", "skin_conduct"]]
-    #baselines = baselines.rename(columns = {"skin_conduct":"skin_conduct_baseline"})
-    #activity_mean_no_bl = activity_mean[activity_mean['activity'] != "Baseline"]
-    #activity_mean_no_bl = activity_mean_no_bl.rename(columns = {"skin_conduct":"skin_conduct_means"})
-    #activity_mean_merged = activity_mean_no_bl.merge(baselines, on = ["sensor_id"])
 
 
 # mean/median percent difference between baseline and activity
@@ -503,6 +503,8 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline):
     percent_diff_stddev = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).std()*100)
     percent_diff_stderr = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).sem()*100)
 
+    #percent_diff_means_baseline_class =
+
     # for statistics csv output
     statistics_output = percent_diff_means, percent_diff_means_no_outliers, percent_diff_medians, percent_diff_stddev, percent_diff_stderr, total_time, total_time_seconds
 
@@ -519,12 +521,12 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline):
 
     # mean percent difference
     fig4, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.bar(list(y_pos.keys()), percent_diff_means, yerr=percent_diff_stderr, error_kw=dict(lw=0.7, capsize=2.5, capthick=0.6), align='center', color=[0.33,0.5,0.65], alpha=1)
+    pl.bar(list(y_pos.keys()), percent_diff_means, yerr=percent_diff_stderr, error_kw=dict(lw=0.65, capsize=2, capthick=0.55), align='center', color=[0.33,0.5,0.65], alpha=1)
     pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=6)
     if (0-0.5) <= y_bottom <= 0.5:
-        pl.ylim(y_bottom, y_top+50)
+        pl.ylim(y_bottom, y_top+100)
     else:
-        pl.ylim(y_bottom-50, y_top+50)
+        pl.ylim(y_bottom-100, y_top+100)
     pl.margins(0.01,0)
     pl.subplots_adjust(bottom=0.22, left=0.12)
     pl.tight_layout()
@@ -548,9 +550,9 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline):
 
 
     fig6, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.bar(list(y_pos.keys()), percent_diff_means_no_outliers, yerr=percent_diff_stderr_no_outliers, error_kw=dict(lw=0.7, capsize=2.5, capthick=0.6), align='center', color=[0.62,0.07,0.41], alpha=1)
+    pl.bar(list(y_pos.keys()), percent_diff_means_no_outliers, yerr=percent_diff_stderr_no_outliers, error_kw=dict(lw=0.65, capsize=2, capthick=0.55), align='center', color=[0.62,0.07,0.41], alpha=1)
     pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=6)
-    pl.ylim(min(percent_diff_means_no_outliers-percent_diff_stderr_no_outliers-10), max(percent_diff_means_no_outliers+percent_diff_stderr_no_outliers+10))
+    pl.ylim(min(percent_diff_means_no_outliers-percent_diff_stderr_no_outliers-100), max(percent_diff_means_no_outliers+percent_diff_stderr_no_outliers+100))
     pl.margins(0.01,0)
     pl.subplots_adjust(bottom=0.22, left=0.12)
     pl.tight_layout()
