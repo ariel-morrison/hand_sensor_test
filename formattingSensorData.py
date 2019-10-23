@@ -248,7 +248,7 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df):
 
 
 
-def get_beri_protocol(working_dir, beri_files):
+def get_beri_protocol(working_dir, beri_files, beri_exists):
     """
     Input: working directory (working_dir) where all data are downloaded from Empatica website;
             spreadsheet (timing_beri) where BERI protocol observations are recorded (see example)
@@ -262,7 +262,7 @@ def get_beri_protocol(working_dir, beri_files):
 
     os.chdir(working_dir)
 
-    if beri_exists:
+    if beri_exists == True :
         beri_dir = os.path.join(working_dir, 'beri_files')
         os.chdir(beri_dir)
 
@@ -346,7 +346,7 @@ def get_grades(working_dir, grade_files):
     return sep_grades_df
 
 
-def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, continuous_baseline):
+def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, continuous_baseline, beri_exists):
 #def plot_results(obs_EDA, phasic, tonic, Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline):
     """
     Input: for plotting an individual's data - skin conductance dataframe (obs_EDA), phasic/tonic components,
@@ -463,8 +463,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
         activity_mean_no_bl["file_name_no_ts"] = activity_mean_no_bl["file_name_no_ts"].str.split('_').str[1]
         # merge the dataframe containing sensor ID, activity mean skin conductance, and baselines for each student
         activity_mean_merged = activity_mean_no_bl.merge(baselines, on = ["file_name_no_ts"])
-        print("separate baseline:")
-        print(activity_mean_merged)
+        print("separate baseline")
 
     elif continuous_baseline == True :
         baselines = activity_mean[activity_mean['activity'] == "Baseline"][["file_name", "skin_conduct"]]
@@ -472,20 +471,19 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
         activity_mean_no_bl = activity_mean[activity_mean['activity'] != "Baseline"]
         activity_mean_no_bl = activity_mean_no_bl.rename(columns = {"skin_conduct":"skin_conduct_means"})
         activity_mean_merged = activity_mean_no_bl.merge(baselines, on = ["file_name"])
-        print("continuous baseline:")
-        print(activity_mean_merged)
+        print("continuous baseline")
 
     else:
         baselines = EDA_data_df.reset_index().groupby(['sensor_ids'])['skin_conduct'].mean()
+        print(baselines)
         activity_mean_no_bl = activity_mean[activity_mean['activity'] != "Baseline"]
         activity_mean_no_bl = activity_mean_no_bl.rename(columns = {"skin_conduct":"skin_conduct_means"})
         activity_mean_no_bl["file_name_no_ts"] = activity_mean_no_bl['file_name'].astype(str)
         activity_mean_no_bl["file_name_no_ts"] = activity_mean_no_bl["file_name_no_ts"].str.split('_').str[1]
 
         activity_mean_merged = activity_mean_no_bl.rename(columns = {"file_name_no_ts":"sensor_ids"})
-        activity_mean_merged = activity_mean_merged_baseline_class.merge(baseline_class.to_frame(), on = ['sensor_ids']).rename(columns = {"skin_conduct" : "skin_conduct_baseline"})
-        print("full class baseline:")
-        print(activity_mean_merged)
+        activity_mean_merged = activity_mean_merged.merge(baselines.to_frame(), on = ['sensor_ids']).rename(columns = {"skin_conduct" : "skin_conduct_baseline"})
+        print("full class baseline")
 
 
     def outliers_to_nan(activity):
@@ -532,62 +530,93 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
     fig4, ax = pl.subplots( nrows=1, ncols=1 )
     pl.bar(list(y_pos.keys()), percent_diff_means, yerr=percent_diff_stderr, error_kw=dict(lw=0.65, capsize=2, capthick=0.55), align='center', color=[0.33,0.5,0.65], alpha=1)
     pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=6)
-    if (0-0.5) <= y_bottom <= 0.5:
-        pl.ylim(y_bottom, y_top+100)
-    else:
-        pl.ylim(y_bottom-100, y_top+100)
+    pl.ylim(y_bottom-(y_bottom*0.1), y_top+(y_top*0.1))
     pl.margins(0.01,0)
     pl.subplots_adjust(bottom=0.22, left=0.12)
     pl.tight_layout()
     pl.ylabel('Mean skin conductance % difference\n(activity - baseline)', fontsize=6)
     pl.yticks(fontsize=6)
-    fig4.savefig(os.path.join(output_dir, 'activity_means.pdf'), dpi = pref_dpi, bbox_inches='tight')
+    if separate_baseline == True :
+        fig4.savefig(os.path.join(output_dir, 'activity_means_separate_BL.pdf'), dpi = pref_dpi, bbox_inches='tight')
+    elif continuous_baseline == True :
+        fig4.savefig(os.path.join(output_dir, 'activity_means_continuous_BL.pdf'), dpi = pref_dpi, bbox_inches='tight')
+    else:
+        fig4.savefig(os.path.join(output_dir, 'activity_means_entire_semester_BL.pdf'), dpi = pref_dpi, bbox_inches='tight')
     pl.close(fig4)
 
     # median percent difference
     fig5, ax = pl.subplots( nrows=1, ncols=1 )
     pl.bar(list(y_pos.keys()), percent_diff_medians, align='center', color=[0.12,0.35,1], alpha=1)
     pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=6)
-    pl.ylim(min(percent_diff_medians-5), max(percent_diff_medians+5))
+    pl.ylim(min(percent_diff_medians-(percent_diff_medians*0.1)), max(percent_diff_medians+(percent_diff_medians*0.1)))
     pl.margins(0.01,0)
     pl.subplots_adjust(bottom=0.25, left=0.15)
     pl.tight_layout()
     pl.yticks(fontsize=6)
     pl.ylabel('Median skin conductance % difference\n(activity - baseline)', fontsize=7)
-    fig5.savefig(os.path.join(output_dir, 'activity_medians.pdf'), dpi = pref_dpi, bbox_inches='tight')
+    if separate_baseline == True :
+        fig5.savefig(os.path.join(output_dir, 'activity_medians_separate_BL.pdf'), dpi = pref_dpi, bbox_inches='tight')
+    elif continuous_baseline == True :
+        fig5.savefig(os.path.join(output_dir, 'activity_medians_continuous_BL.pdf'), dpi = pref_dpi, bbox_inches='tight')
+    else:
+        fig5.savefig(os.path.join(output_dir, 'activity_medians_entire_semester_BL.pdf'), dpi = pref_dpi, bbox_inches='tight')
     pl.close(fig5)
 
     # mean percent difference, no outliers
     fig6, ax = pl.subplots( nrows=1, ncols=1 )
     pl.bar(list(y_pos.keys()), percent_diff_means_no_outliers, yerr=percent_diff_stderr_no_outliers, error_kw=dict(lw=0.65, capsize=2, capthick=0.55), align='center', color=[0.62,0.07,0.41], alpha=1)
     pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=6)
-    pl.ylim(min(percent_diff_means_no_outliers-percent_diff_stderr_no_outliers-100), max(percent_diff_means_no_outliers+percent_diff_stderr_no_outliers+100))
+    pl.ylim(min(percent_diff_means_no_outliers-(percent_diff_stderr_no_outliers+percent_diff_means_no_outliers*0.15)), max(percent_diff_means_no_outliers+percent_diff_stderr_no_outliers+(percent_diff_means_no_outliers*0.15)))
     pl.margins(0.01,0)
     pl.subplots_adjust(bottom=0.22, left=0.12)
     pl.tight_layout()
     pl.ylabel('Mean skin conductance % difference w/o outliers\n(activity - baseline)', fontsize=6)
     pl.yticks(fontsize=6)
-    fig6.savefig(os.path.join(output_dir, 'activity_means_no_outliers.pdf'), dpi = pref_dpi, bbox_inches='tight')
+    if separate_baseline == True :
+        fig6.savefig(os.path.join(output_dir, 'activity_means_no_outliers_separate_BL.pdf'), dpi = pref_dpi, bbox_inches='tight')
+    elif continuous_baseline == True :
+        fig6.savefig(os.path.join(output_dir, 'activity_means_no_outliers_continuous_BL.pdf'), dpi = pref_dpi, bbox_inches='tight')
+    else:
+        fig6.savefig(os.path.join(output_dir, 'activity_means_no_outliers_entire_semester_BL.pdf'), dpi = pref_dpi, bbox_inches='tight')
     pl.close(fig6)
 
 
-    # # mean percent difference, baseline is average of semester engagement
-    # fig7, ax = pl.subplots( nrows=1, ncols=1 )
-    # pl.bar(list(y_pos.keys()), percent_diff_means_baseline_class, yerr=percent_diff_stderr_baseline_class, error_kw=dict(lw=0.65, capsize=2, capthick=0.55), align='center', color=[0,0.7,0.34], alpha=1)
-    # pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=6)
-    # pl.ylim(min(percent_diff_means_baseline_class-percent_diff_stderr_baseline_class-5), max(percent_diff_means_baseline_class+percent_diff_stderr_baseline_class+5))
-    # pl.margins(0.01,0)
-    # pl.subplots_adjust(bottom=0.22, left=0.12)
-    # pl.tight_layout()
-    # pl.ylabel('Mean skin conductance % difference\n(activity - baseline engagement during semester)', fontsize=6)
-    # pl.yticks(fontsize=6)
-    # fig7.savefig(os.path.join(output_dir, 'activity_means_baseline_class.pdf'), dpi = pref_dpi, bbox_inches='tight')
-    # pl.close(fig7)
+    # histogram
+    fig7, ax = pl.subplots( nrows=1, ncols=1 )
+    pl.hist(percent_diff_means, bins=20, color=['green'], align='mid', rwidth=0.92)
+    pl.ylabel('Counts')
+    pl.xlabel("Mean skin conductance % difference from baseline")
+    pl.margins(0.01,0)
+    pl.subplots_adjust(bottom=0.22, left=0.12)
+    pl.tight_layout()
+    if separate_baseline == True :
+        fig7.savefig(os.path.join(output_dir, 'activity_means_separate_BL_hist.pdf'), dpi = pref_dpi, bbox_inches='tight')
+    elif continuous_baseline == True :
+        fig7.savefig(os.path.join(output_dir, 'activity_means_continuous_BL_hist.pdf'), dpi = pref_dpi, bbox_inches='tight')
+    else:
+        fig7.savefig(os.path.join(output_dir, 'activity_means_entire_semester_BL_hist.pdf'), dpi = pref_dpi, bbox_inches='tight')
+    pl.close(fig7)
 
+
+    # histogram
+    fig8, ax = pl.subplots( nrows=1, ncols=1 )
+    pl.hist(percent_diff_means_no_outliers, bins=22, color=[0.8,0.33,0], align='mid', rwidth=0.92)
+    pl.ylabel('Counts')
+    pl.xlabel("Mean skin conductance % difference from baseline, no outliers")
+    pl.margins(0.01,0)
+    pl.subplots_adjust(bottom=0.22, left=0.12)
+    pl.tight_layout()
+    if separate_baseline == True :
+        fig8.savefig(os.path.join(output_dir, 'activity_means_no_outliers_separate_BL_hist.pdf'), dpi = pref_dpi, bbox_inches='tight')
+    elif continuous_baseline == True :
+        fig8.savefig(os.path.join(output_dir, 'activity_means_no_outliers_continuous_BL_hist.pdf'), dpi = pref_dpi, bbox_inches='tight')
+    else:
+        fig8.savefig(os.path.join(output_dir, 'activity_means_no_outliers_entire_semester_BL_hist.pdf'), dpi = pref_dpi, bbox_inches='tight')
+    pl.close(fig8)
 
 
     # for BERI protocol analysis:
-    beri_df = get_beri_protocol(working_dir, beri_files)
+    beri_df = get_beri_protocol(working_dir, beri_files, beri_exists)
     #
     # fig6, ax = pl.subplots( nrows=1, ncols=1 )
     # pl.plot(beri_df['time'], beri_df['total_eng'], color = 'r')
@@ -729,7 +758,7 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_files, beri_e
     #cvx_first = EDA_data_df.groupby(level=0).first()
 
     #statistics_output, keywords, activity_stats, beri_df = plot_results(cvx_first['skin_conduct'], cvx_first['phasic'], cvx_first['tonic'], Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline)
-    statistics_output, keywords, activity_stats, beri_df = plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, continuous_baseline)
+    statistics_output, keywords, activity_stats, beri_df = plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, continuous_baseline, beri_exists)
     get_grades(working_dir, grade_files)
     save_output_csv(statistics_output, output_dir, keywords, activity_stats, beri_df)
 
@@ -737,5 +766,5 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_files, beri_e
 
 
 if __name__=='__main__':
-    working_dir, timing_xcel, sheetname, beri_files, beri_exists, Fs, delta, pref_dpi, separate_baseline, continuous_baseline, grade_files = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8], sys.argv[9].lower(), sys.argv[10], sys.argv[11]
+    working_dir, timing_xcel, sheetname, beri_files, beri_exists, Fs, delta, pref_dpi, separate_baseline, continuous_baseline, grade_files = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8], sys.argv[9], sys.argv[10], sys.argv[11]
     format_and_plot_data(working_dir, timing_xcel, sheetname, beri_files, beri_exists, Fs, delta, pref_dpi, separate_baseline, continuous_baseline, grade_files)
