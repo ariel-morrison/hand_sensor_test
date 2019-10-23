@@ -270,20 +270,20 @@ def get_beri_protocol(working_dir, beri_files, beri_exists):
 
         for dirpath, dirnames, filenames in os.walk(beri_dir):
             for filename in filenames:
-                if 'boyd.xlsx' in filename:
+                if 'Our Changing Environment' in filename:
                     path_to_beri_file = os.path.join(dirpath, filename)
-                    data = pd.read_excel(filename, parse_dates=[['class_date','time']])
+                    data = pd.read_csv(filename, parse_dates=[['class_date','time']])
                     beri_df.append(data)
 
-        beri_df = pd.concat(beri_df)
+
+        beri_df = pd.concat(beri_df, sort=False)
         beri_df['total_eng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-E')] | beri_df.columns[beri_df.columns.str.contains('-L')] | beri_df.columns[beri_df.columns.str.contains('-W')])].sum(axis=1)
         beri_df['total_diseng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-D')] | beri_df.columns[beri_df.columns.str.contains('-U')] | beri_df.columns[beri_df.columns.str.contains('-S')])].sum(axis=1)
-        beri_df.to_excel("beri_obs_total_fall_2018.xlsx")
-
+        beri_df.to_csv("beri_obs_total_fall_2018.csv")
 
     student_overview = pd.read_excel(os.path.join(working_dir, "StudentDataOverview.xlsx"))
     student_overview = student_overview.set_index('Sensor').T
-    print(student_overview)
+    #print(student_overview)
 
     return beri_df
 
@@ -402,8 +402,6 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
     activity_stderr2 = activity_stderr.rename(columns = {"level_0":"file_name","skin_conduct":"stderr_skin_conduct"})
     activity_stats = pd.concat([activity_mean, activity_stddev2['stddev_skin_conduct'], activity_stderr2['stderr_skin_conduct']], axis=1)
 
-    print(separate_baseline)
-    print(continuous_baseline)
 
     # changes to calibration directory if user input was "true" for separate baselines
     if separate_baseline == True :
@@ -446,11 +444,9 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
 
         # finds mean baseline for each student, puts all baselines in a dataframe and sorts by sensor number
         baselines = baseline_df.groupby(['file_name_no_ts'])['skin_conduct_baseline'].mean().reset_index()
-        baseline_df_max = baseline_df.groupby(['file_name_no_ts'])['skin_conduct_baseline'].max().reset_index()
-        baseline_df_min = baseline_df.groupby(['file_name_no_ts'])['skin_conduct_baseline'].min().reset_index()
 
-        for i in range(0,len(baseline_df_max)):
-            if baseline_df_max['skin_conduct_baseline'][i] > 2.5*baseline_df_min['skin_conduct_baseline'][i]:
+        for i in range(0,len(baselines)):
+            if (baseline_df.groupby(['file_name_no_ts'])['skin_conduct_baseline'].max().reset_index())['skin_conduct_baseline'][i] > 2.5*(baseline_df.groupby(['file_name_no_ts'])['skin_conduct_baseline'].min().reset_index())['skin_conduct_baseline'][i]:
                 baselines['skin_conduct_baseline'][i] = np.nan
 
         # remove baseline from dataframe, if it existed as part of the continuous data record
@@ -465,6 +461,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
         activity_mean_merged = activity_mean_no_bl.merge(baselines, on = ["file_name_no_ts"])
         print("separate baseline")
 
+# following if statement determines which baseline was used and then performs calculations
     elif continuous_baseline == True :
         baselines = activity_mean[activity_mean['activity'] == "Baseline"][["file_name", "skin_conduct"]]
         baselines = baselines.rename(columns = {"skin_conduct":"skin_conduct_baseline"})
@@ -505,11 +502,6 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
     percent_diff_medians = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).median()*100)
     percent_diff_stddev = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).std()*100)
     percent_diff_stderr = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).sem()*100)
-
-    # percent_diff_means_baseline_class = activity_mean_merged_baseline_class.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["baseline_class"])/row["baseline_class"]).mean()*100)
-    # percent_diff_stddev_baseline_class = activity_mean_merged_baseline_class.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["baseline_class"])/row["baseline_class"]).std()*100)
-    # percent_diff_stderr_baseline_class = activity_mean_merged_baseline_class.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["baseline_class"])/row["baseline_class"]).sem()*100)
-    # percent_diff_medians_baseline_class = activity_mean_merged_baseline_class.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["baseline_class"])/row["baseline_class"]).median()*100)
 
 
     # for statistics csv output
@@ -583,7 +575,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
 
     # histogram
     fig7, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.hist(percent_diff_means, bins=20, color=['green'], align='mid', rwidth=0.92)
+    pl.hist(percent_diff_means[np.isfinite(percent_diff_means)].values, bins=18, color=['green'], align='mid', rwidth=0.92)
     pl.ylabel('Counts')
     pl.xlabel("Mean skin conductance % difference from baseline")
     pl.margins(0.01,0)
@@ -592,6 +584,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
     if separate_baseline == True :
         fig7.savefig(os.path.join(output_dir, 'activity_means_separate_BL_hist.pdf'), dpi = pref_dpi, bbox_inches='tight')
     elif continuous_baseline == True :
+        pl.ylim()
         fig7.savefig(os.path.join(output_dir, 'activity_means_continuous_BL_hist.pdf'), dpi = pref_dpi, bbox_inches='tight')
     else:
         fig7.savefig(os.path.join(output_dir, 'activity_means_entire_semester_BL_hist.pdf'), dpi = pref_dpi, bbox_inches='tight')
@@ -600,7 +593,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
 
     # histogram
     fig8, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.hist(percent_diff_means_no_outliers, bins=22, color=[0.8,0.33,0], align='mid', rwidth=0.92)
+    pl.hist(percent_diff_means_no_outliers[np.isfinite(percent_diff_means)].values, bins=18, color=[0.85,0.33,0], align='mid', rwidth=0.92)
     pl.ylabel('Counts')
     pl.xlabel("Mean skin conductance % difference from baseline, no outliers")
     pl.margins(0.01,0)
