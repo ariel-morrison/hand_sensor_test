@@ -53,7 +53,7 @@ Example command:
 
 Example commands:
 
-`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/1060data" ATOC1060TimingComponents.xlsx total_timing "beri_files" True 4 0.25 800 True False "ATOC-1060-2018_AllData_woID_wConsent_FinalFinal_withGrades.xlsx"`
+`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/1060data" ATOC1060TimingComponents.xlsx total_timing "beri_files" True 4 0.25 800 True False "ATOC-1060-2018_Grades.xlsx"`
 
 
 `python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" test_timing.xlsx exp_session "beri_examples" True 4 0.25 2000 False False "ENV1000_grades.xlsx"`
@@ -86,4 +86,5 @@ Example commands:
 # Common sources of error:
 - Incorrect working directory. working_dir must be the directory where all input data are stored.
 - Omitting user inputs. All 9 of the user-defined inputs must be included when calling the script.
+- Incorrect user inputs. All Boolean inputs can only be True/False.
 - Timing format is incorrect. When recording the activity timing in a spreadsheet, the format must always be YYYYMMDDHHMMSS. If the day and month columns are switched, the month column may end up out of range (e.g., if the date is September 28 and the month/day columns are switched then there will be an error because there are not 28 months).
