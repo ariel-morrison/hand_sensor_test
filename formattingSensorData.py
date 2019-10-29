@@ -279,12 +279,22 @@ def get_beri_protocol(working_dir, beri_files, beri_exists):
         beri_df = pd.concat(beri_df, sort=False)
         beri_df['total_eng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-E')] | beri_df.columns[beri_df.columns.str.contains('-L')] | beri_df.columns[beri_df.columns.str.contains('-W')])].sum(axis=1)
         beri_df['total_diseng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-D')] | beri_df.columns[beri_df.columns.str.contains('-U')] | beri_df.columns[beri_df.columns.str.contains('-S')])].sum(axis=1)
-        beri_df = beri_df.sort_values("class_date_time")
+        beri_df = beri_df.drop(['id', 'instructor', 'class_subject_code', 'class_number', 'observer'], axis=1).sort_values("class_date_time")
         beri_df.to_csv("beri_obs_total_fall_2018.csv")
 
-    student_overview = pd.read_excel(os.path.join(working_dir, "StudentDataOverview.xlsx"))
-    student_overview = student_overview.set_index('Sensor').T
-    #print(student_overview)
+        student_overview = pd.read_excel(os.path.join(working_dir, "StudentDataOverview.xlsx"))
+        student_overview = student_overview.set_index('Sensor').T
+
+
+        print(student_overview)
+#         obs_beri = beri_df[(beri_df.columns[beri_df.columns.str.contains('-1-')] | beri_df.columns[beri_df.columns.str.contains('class_date_time')])]
+        prefixes = [c.split('-')[1] if '-' in c else c for c in beri_df.columns]
+        prefixes = list(dict.fromkeys(prefixes))
+        print(prefixes)
+        grouper = [next(p for p in prefixes if p in c) for c in beri_df.columns]
+        obs_beri = beri_df.groupby(grouper, axis=1)
+        #print(student_overview[student_overview == 1])
+        print(obs_beri.apply(lambda df: print(df)))
 
     return beri_df
 
@@ -517,8 +527,6 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
     percent_diff_stddev = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).std()*100)
     percent_diff_stderr = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).sem()*100)
 
-    print("percent_diff_means:")
-    print(percent_diff_means)
 
     # for statistics csv output
     statistics_output = percent_diff_means, percent_diff_stddev, percent_diff_stderr, percent_diff_means_no_outliers, percent_diff_medians, total_time, total_time_seconds
@@ -629,14 +637,15 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
     beri_df = get_beri_protocol(working_dir, beri_files, beri_exists)
 
     fig9, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.scatter(range(0,len(beri_df)), beri_df['total_eng'], c = 'k', marker='o', s=2, label='# engaged')
-    pl.scatter(range(0,len(beri_df)), beri_df['total_diseng'], c = 'b', marker='v', s=2, label="# disengaged")
+    pl.scatter(range(0,len(beri_df)), beri_df['total_eng'], c = 'k', marker='o', s=3, label='# engaged')
+    pl.scatter(range(0,len(beri_df)), beri_df['total_diseng'], c = 'b', marker='v', s=3, label="# disengaged")
+    pl.yticks(fontsize=8)
     pl.legend()
     pl.ylabel('# students')
-    pl.xlabel('Class date')
-    pl.ylim(0,19)
+    pl.xlabel('Observation')
+    pl.ylim(0,20)
     pl.xlim(0, len(beri_df))
-    pl.margins(0.15)
+    pl.margins(0.01,0)
     pl.subplots_adjust(bottom=0.2)
     pl.tight_layout()
     fig9.savefig(os.path.join(output_dir, 'number_engaged_students.pdf'), dpi = pref_dpi)
@@ -742,6 +751,7 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_files, beri_e
     EDA_data_df = pd.concat(EDA_dataframe_list,keys=[os.path.basename(name) for name in EDA_list])
     EDA_data_df['sensor_ids'] = EDA_data_df.index.get_level_values(0).str.split('_').str[1]
     EDA_by_sensor = EDA_data_df.reset_index().drop('level_0', axis = 1).groupby('sensor_ids')
+    print(EDA_data_df)
 
     # skin conductance for decomposition analysis
     obs_EDA = EDA_data_df.iloc[0:len(EDA_dataframe_list[0])]["skin_conduct"]
