@@ -12,7 +12,7 @@
 5. Using BERI observations, true or false: $beri_exists -- e.g., True (**NOTE**: only True or False are acceptable inputs)
 6. Sampling frequency per second: $Fs  --  e.g., 4 (4 default for E4 sensors, integer, units = samples per second)
 7. Time interval of recording: $delta  --  e.g., 0.25 (0.25 default for E4 sensors, float, units = samples recorded every 0.25 seconds)
-8. Preferred dpi (resolution) for saved figures: $pref_dpi -- e.g., 500, 1000, 2000 (1000 is a good readable resolution for png files)
+8. Preferred dpi (resolution) for saved .pdf figures: $pref_dpi -- e.g., 500, 1000, 2000 (900 is a good readable resolution)
 9. Separate baseline recording? Baselines are separate if they are read in from a different file and then applied to one or more student records. True or False: $separate_baseline -- e.g., True (**NOTE**: only True or False are acceptable inputs. If baselines are recorded separately, must be stored in a subdirectory of the working directory called "calibration")
 10. Continuous baseline recording? Baselines are continuous if they are part of the same skin conductance record to which they are being compared. For example, if the first 3 minutes of the skin conductance record are the 'baseline,' then choose True for the continuous baseline. True or False: $continuous_baseline -- e.g., False
 11. Spreadsheet where grades are stored: $grade_files -- e.g., "ENV1000_grades.xlsx" (put it in quotes)
@@ -26,15 +26,21 @@
 
 `python3 -m pip install --user virtualenv`
 
+Note: If your pip package is out of date, update the pip package when prompted.
 
-2) Create virtual environment:
+
+2) Create virtual environment to download code requirements and run code:
 
 `python3 -m venv env`
 
+Note: If you get an error message "Error returned non-zero exit status 1," run this command without pip:
 
-**If you've already installed a virtual environment, start here:**
+`python3 -m venv env --without-pip`
 
-3) Activate the virtual environment:
+
+**If you've already installed a virtual environment in your working directory, start here:**
+
+3) Activate your virtual environment:
 
 `source env/bin/activate`
 
@@ -68,10 +74,11 @@ Example commands:
 
 *The 3 above figures are only made for one student at a time - i.e., there is no averaging. They are snapshots of one sensor's data.*
 
-- mean percent difference between activity and baseline skin conductance (bar/column)
-- median percent difference between activity and baseline skin conductance (bar/column)
-- mean number of students exhibiting engaged behaviors during each class activity, based on BERI protocol
-- mean number of students exhibiting disengaged behaviors during each class activity, based on BERI protocol
+- bar chart of mean percent difference between activity and baseline skin conductance
+- bar chart of mean percent difference between activity and baseline skin conductance, outliers removed
+- bar chart of median percent difference between activity and baseline skin conductance
+- mean number of students exhibiting engaged and disengaged behaviors during each class activity, based on BERI protocol
+- histogram of mean percent difference between activity and baseline skin conductance
 
 *The above figures are averages across all students.*
 
@@ -80,6 +87,7 @@ Example commands:
 - for each activity: mean and median percent difference between activity and baseline skin conductance, mean percent difference without outliers, std. deviation and std. error for mean percent difference, total time (in seconds) spent on each activity
 - mean/standard deviation/standard error of skin conductance values for all sensors, all activities
 - mean/standard deviation/standard error of number of engaged/disengaged students during class activities, based on BERI protocol
+- grade breakdown, separated by STEM/non-STEM and gender
 
 
 
