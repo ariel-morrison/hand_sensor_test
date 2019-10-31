@@ -52,7 +52,7 @@ Example command:
 `pip install -r requirements.txt`
 
 
-5) Run the script
+5) Run the script with user inputs:
 
 `python formattingSensorData.py $working_dir $timing_xcel $sheetname $beri_files $beri_exists $FS $delta $pref_dpi $separate_baseline $continuous_baseline $grade_files`
 
@@ -63,6 +63,7 @@ Example commands:
 
 
 `python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/handsensors/hand_sensor_test/empaticadata" test_timing.xlsx exp_session "beri_examples" True 4 0.25 2000 False False "ENV1000_grades.xlsx"`
+
 
 
 **Files saved to output directory:**
