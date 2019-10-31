@@ -273,28 +273,36 @@ def get_beri_protocol(working_dir, beri_files, beri_exists):
                 if 'Our Changing Environment' in filename:
                     path_to_beri_file = os.path.join(dirpath, filename)
                     data = pd.read_csv(filename, parse_dates=[['class_date','time']])
+                    data = data.resample('250L', label='right', closed='right', on='class_date_time').mean().ffill()
                     beri_df.append(data)
 
 
         beri_df = pd.concat(beri_df, sort=False)
         beri_df['total_eng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-E')] | beri_df.columns[beri_df.columns.str.contains('-L')] | beri_df.columns[beri_df.columns.str.contains('-W')])].sum(axis=1)
         beri_df['total_diseng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-D')] | beri_df.columns[beri_df.columns.str.contains('-U')] | beri_df.columns[beri_df.columns.str.contains('-S')])].sum(axis=1)
-        beri_df = beri_df.drop(['id', 'instructor', 'class_subject_code', 'class_number', 'observer'], axis=1).sort_values("class_date_time")
-        beri_df.to_csv("beri_obs_total_fall_2018.csv")
+        beri_df = beri_df.drop(['id', 'class_number'], axis=1).sort_values("class_date_time")
+        #beri_df.to_csv("beri_obs_total_fall_2018.csv") # this is a large file to save!
+
 
         student_overview = pd.read_excel(os.path.join(working_dir, "StudentDataOverview.xlsx"))
         student_overview = student_overview.set_index('Sensor').T
+        student_overview.index = pd.to_datetime(student_overview.index)
+        student_overview_resampled = student_overview.resample('250L', label='right', closed='right').ffill()
+        #student_overview_resampled.to_csv("student_overview_resampled.csv") # this is a large file to save!
 
+        #everything above is fine
+        beri_df_merged = beri_df
+        beri_df_merged.merge(student_overview_resampled)
 
-        print(student_overview)
-#         obs_beri = beri_df[(beri_df.columns[beri_df.columns.str.contains('-1-')] | beri_df.columns[beri_df.columns.str.contains('class_date_time')])]
         prefixes = [c.split('-')[1] if '-' in c else c for c in beri_df.columns]
         prefixes = list(dict.fromkeys(prefixes))
+        print("prefixes:")
         print(prefixes)
+        print(" ")
         grouper = [next(p for p in prefixes if p in c) for c in beri_df.columns]
-        obs_beri = beri_df.groupby(grouper, axis=1)
-        #print(student_overview[student_overview == 1])
-        print(obs_beri.apply(lambda df: print(df)))
+        beri_df_grouped = beri_df.groupby(grouper, axis=1)
+        beri_df_grouped.sum().reset_index().to_csv('beri_df_grouped.csv')
+        #print(obs_beri.apply(lambda df: print(df)))
 
     return beri_df
 
@@ -358,7 +366,6 @@ def get_grades(working_dir, grade_files):
     clicker_q = pd.read_excel(os.path.join(working_dir, "ATOC1060_Fall2018_Clickers_IRBresearch.xlsx"), usecols="A,E:F")
     clicker_q_df = clicker_q.reset_index().groupby("Lecture Date").mean()
     clicker_q_df['avg%correct'] = clicker_q_df[['%correct', '%correct 2nd time']].mean(axis=1)
-    print(clicker_q_df)
 
     print("Completed grades")
     print(" ")
@@ -412,6 +419,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
 #     fig3.savefig(os.path.join(output_dir, 'tonic_component.png'), dpi = pref_dpi)
 #     pl.close(fig3)
 
+
     # get timing and EDA for each activity
     activity_mean, activity_stddev, activity_stderr, total_time, total_time_seconds, EDA_data_df = get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df)
     activity_mean = activity_mean.reset_index()
@@ -421,6 +429,9 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
     activity_stderr = activity_stderr.reset_index()
     activity_stderr2 = activity_stderr.rename(columns = {"level_0":"file_name","skin_conduct":"stderr_skin_conduct"})
     activity_stats = pd.concat([activity_mean, activity_stddev2['stddev_skin_conduct'], activity_stderr2['stderr_skin_conduct']], axis=1)
+
+    # for BERI protocol analysis:
+    beri_df = get_beri_protocol(working_dir, beri_files, beri_exists)
 
 
     # changes to calibration directory if user input was "true" for separate baselines
@@ -634,8 +645,6 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
 
 
     # for BERI protocol analysis:
-    beri_df = get_beri_protocol(working_dir, beri_files, beri_exists)
-
     fig9, ax = pl.subplots( nrows=1, ncols=1 )
     pl.scatter(range(0,len(beri_df)), beri_df['total_eng'], c = 'k', marker='o', s=3, label='# engaged')
     pl.scatter(range(0,len(beri_df)), beri_df['total_diseng'], c = 'b', marker='v', s=3, label="# disengaged")
@@ -678,7 +687,7 @@ def save_output_csv(statistics_output, output_dir, keywords, activity_stats, ber
     # raw skin conductance values for each sensor id, each activity
     export_csv = activity_stats.to_csv(os.path.join(output_dir, 'activity_stats.csv'), index = None, header=True)
     cols_to_keep = ['class_date_time','total_eng','total_diseng']
-    export_beri = beri_df[cols_to_keep].to_csv(os.path.join(output_dir, 'beri_protocol_stats.csv'), index = None, header=True)
+    #export_beri = beri_df[cols_to_keep].to_csv(os.path.join(output_dir, 'beri_protocol_stats.csv'), index = None, header=True)
 
     print("Saved all files to output directory")
     print(" ")
@@ -751,7 +760,6 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_files, beri_e
     EDA_data_df = pd.concat(EDA_dataframe_list,keys=[os.path.basename(name) for name in EDA_list])
     EDA_data_df['sensor_ids'] = EDA_data_df.index.get_level_values(0).str.split('_').str[1]
     EDA_by_sensor = EDA_data_df.reset_index().drop('level_0', axis = 1).groupby('sensor_ids')
-    print(EDA_data_df)
 
     # skin conductance for decomposition analysis
     obs_EDA = EDA_data_df.iloc[0:len(EDA_dataframe_list[0])]["skin_conduct"]
