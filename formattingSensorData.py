@@ -291,8 +291,6 @@ def get_beri_protocol(working_dir, beri_files, beri_exists):
         #student_overview_resampled.to_csv("student_overview_resampled.csv") # this is a large file to save!
 
         #everything above is fine
-        beri_df_merged = beri_df
-        beri_df_merged.merge(student_overview_resampled)
 
         prefixes = [c.split('-')[1] if '-' in c else c for c in beri_df.columns]
         prefixes = list(dict.fromkeys(prefixes))
