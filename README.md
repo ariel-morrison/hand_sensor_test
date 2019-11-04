@@ -18,7 +18,7 @@
 11. Spreadsheet where grades are stored: $grade_files -- e.g., "ENV1000_grades.xlsx" (put it in quotes)
 
 
-**To RUN:**
+###**To RUN:**
 
 **Do steps 1-2 the FIRST time you run the code:**
 
@@ -38,7 +38,8 @@ Note: If you get an error message "Error returned non-zero exit status 1," run t
 `python3 -m venv env --without-pip`
 
 
-**If you've already installed a virtual environment in your working directory, start here:**
+
+###**If you've already installed a virtual environment in your working directory, start here:**
 
 3) Activate your virtual environment:
 
@@ -50,6 +51,8 @@ Note: If you get an error message "Error returned non-zero exit status 1," run t
 Example command:
 
 `pip install -r requirements.txt`
+
+Note: If a package needs to be uninstalled before the requirements can be installed, use `conda uninstall $package`
 
 
 5) Run the script with user inputs:
