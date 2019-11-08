@@ -229,9 +229,22 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df):
 
     x_out = xcel.apply(lambda row : EDA_data_df[(EDA_data_df['timestamp']>=row['datetime_start'])&(EDA_data_df['timestamp']<row['datetime_end'])].assign(activity=row['Activity Start']), axis=1)
 
+    baselines_test = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct']
+    # select all values except for midterm/finals
     activity_mean = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].mean()
     activity_stddev = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].std()
     activity_stderr = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].sem()
+
+    xcel_exams = xcel
+    xcel_exams = xcel_exams.reset_index().set_index('Activity Start')
+
+    exam_start = xcel_exams.loc[['Midterm', 'Final Exam'], 'datetime_start']
+    exam_end = xcel_exams.loc[['Midterm', 'Final Exam'], 'datetime_end']
+    mask1 = EDA_data_df[(EDA_data_df['timestamp'] < exam_start[0]) | (EDA_data_df['timestamp'] > exam_end[0])]
+    mask2 = EDA_data_df[(EDA_data_df['timestamp'] < exam_start[1]) | (EDA_data_df['timestamp'] > exam_end[1])]
+    mask3 = EDA_data_df[(EDA_data_df['timestamp'] < exam_start[2]) | (EDA_data_df['timestamp'] > exam_end[2])]
+    mask = pd.concat([mask1, mask2, mask3])
+    baseline_semester = mask.groupby(['sensor_ids']).mean()
 
     # to get the total time spent on each class activity
     xcel['total_time'] = pd.to_datetime(xcel['datetime_end'], infer_datetime_format=True) - pd.to_datetime(xcel['datetime_start'], infer_datetime_format=True)
@@ -243,10 +256,10 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df):
     total_time_seconds = xcel[['Activity Start', 'total_time_seconds']]
     total_time_seconds = total_time_seconds.reset_index().groupby(['Activity Start'])['total_time_seconds'].sum()
 
-    return activity_mean, activity_stddev, activity_stderr, total_time, total_time_seconds, EDA_data_df
+    return activity_mean, activity_stddev, activity_stderr, total_time, total_time_seconds, EDA_data_df, baseline_semester
 
 
-def reduce_function(row, data_reduce):
+def reduce_function(row, data_reduce, student_overview):
     if not isinstance(row.name, pd.Timestamp):
         pass
 
@@ -258,7 +271,8 @@ def reduce_function(row, data_reduce):
     elif row[(row.index[row.index.str.contains('-D|-U|-S', regex=True)])].any():
         out = False
 
-    data_reduce.at[str(row.name), str(seat_num)] = out
+    if len(student_overview.loc[str(row.name.normalize())][student_overview.loc[str(row.name.normalize())] == seat_num].index) > 0:
+        data_reduce.at[str(row.name), student_overview.loc[str(row.name.normalize())][student_overview.loc[str(row.name.normalize())] == seat_num].index[0]] = out
 
 def get_beri_protocol(working_dir, beri_files, beri_exists):
     """
@@ -275,6 +289,10 @@ def get_beri_protocol(working_dir, beri_files, beri_exists):
 
     beri_df = []
 
+    student_overview = pd.read_excel(os.path.join(working_dir, "StudentDataOverview.xlsx"))
+    student_overview = student_overview.set_index('Sensor').T
+    student_overview.index = pd.to_datetime(student_overview.index).normalize()
+    # print(student_overview)
     if beri_exists == True :
         beri_dir = os.path.join(working_dir, 'beri_files')
         os.chdir(beri_dir)
@@ -298,28 +316,30 @@ def get_beri_protocol(working_dir, beri_files, beri_exists):
                     data_grouped = data.groupby(grouper, axis=1)
 
                     data_reduce = pd.DataFrame(index=data.index)
-                    data_grouped.apply(lambda df: df.apply(reduce_function, axis=1, data_reduce=data_reduce))
+                    data_grouped.apply(lambda df: df.apply(reduce_function, axis=1, data_reduce=data_reduce, student_overview=student_overview))
                     data_reduce = data_reduce.resample('250L', label='right', closed='right').nearest().ffill()
                     beri_df.append(data_reduce)
 
-
         beri_df = pd.concat(beri_df, sort=False)
 
-        beri_df['total_eng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-E')] | beri_df.columns[beri_df.columns.str.contains('-L')] | beri_df.columns[beri_df.columns.str.contains('-W')])].sum(axis=1)
-        beri_df['total_diseng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-D')] | beri_df.columns[beri_df.columns.str.contains('-U')] | beri_df.columns[beri_df.columns.str.contains('-S')])].sum(axis=1)
+        #beri_df['total_eng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-E')] | beri_df.columns[beri_df.columns.str.contains('-L')] | beri_df.columns[beri_df.columns.str.contains('-W')])].sum(axis=1)
+        #beri_df['total_diseng'] = beri_df[(beri_df.columns[beri_df.columns.str.contains('-D')] | beri_df.columns[beri_df.columns.str.contains('-U')] | beri_df.columns[beri_df.columns.str.contains('-S')])].sum(axis=1)
         #beri_df.to_csv("beri_obs_total_fall_2018.csv") # this is a large file to save!
 
 
-        student_overview = pd.read_excel(os.path.join(working_dir, "StudentDataOverview.xlsx"))
-        student_overview = student_overview.set_index('Sensor').T
-        student_overview.index = pd.to_datetime(student_overview.index)
-        student_overview_resampled = student_overview.resample('250L', label='right', closed='right').ffill()
+        # student_overview = pd.read_excel(os.path.join(working_dir, "StudentDataOverview.xlsx"))
+        # student_overview = student_overview.set_index('Sensor').T
+        # student_overview.index = pd.to_datetime(student_overview.index)
+        # student_overview_resampled = student_overview.resample('250L', label='right', closed='right').ffill()
+        # print(student_overview_resampled)
+        # print(beri_df)
+        # beri_df_merged = []
+
         #student_overview_resampled.to_csv("student_overview_resampled.csv") # this is a large file to save!
 
-        beri_df_merged = beri_df.merge(student_overview_resampled, right_index=True, left_on='class_date_time').sort_values("class_date_time")
-        print("beri_df_merged:")
-        print(beri_df_merged)
-        print(" ")
+        # beri_df_merged = beri_df.merge(student_overview_resampled, right_index=True, left_on='class_date_time').sort_values("class_date_time")
+
+        #print(obs_beri.apply(lambda df: print(df)))
 
     return beri_df
 
@@ -438,7 +458,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
 
 
     # get timing and EDA for each activity
-    activity_mean, activity_stddev, activity_stderr, total_time, total_time_seconds, EDA_data_df = get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df)
+    activity_mean, activity_stddev, activity_stderr, total_time, total_time_seconds, EDA_data_df, baseline_semester = get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df)
     activity_mean = activity_mean.reset_index()
     activity_mean = activity_mean.rename(columns={'level_0': 'file_name'})
 
@@ -510,7 +530,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
         print("Separate baseline")
         print(" ")
 
-# following if statement determines which baseline was used and then performs calculations
+# If baseline method = continous (first 10 min of class):
     elif continuous_baseline == True :
         baselines = activity_mean[activity_mean['activity'] == "Baseline"][["file_name", "skin_conduct"]]
         baselines = baselines.rename(columns = {"skin_conduct":"skin_conduct_baseline"})
@@ -520,10 +540,19 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
         print("Continuous baseline")
         print(" ")
 
+# If baseline method = entire record (averaged over entire semester, day, etc):
     else:
-        baselines = EDA_data_df.reset_index().groupby(['sensor_ids'])['skin_conduct'].mean()
+        baselines1 = EDA_data_df.reset_index().groupby(['sensor_ids'])['skin_conduct'].mean()
+        print("baselines with exams:")
+        print(baselines1)
+
+        baselines = baseline_semester['skin_conduct']
+        print("baselines without exams:")
         print(baselines)
+        print(" ")
+        EDA_data_df_no_exams = EDA_data_df.reset_index().groupby(['sensor_ids'])
         activity_mean_no_bl = activity_mean[activity_mean['activity'] != "Baseline"]
+        activity_mean_no_exams = activity_mean[activity_mean['activity'] != "Midterm"]
         activity_mean_no_bl = activity_mean_no_bl.rename(columns = {"skin_conduct":"skin_conduct_means"})
         activity_mean_no_bl["file_name_no_ts"] = activity_mean_no_bl['file_name'].astype(str)
         activity_mean_no_bl["file_name_no_ts"] = activity_mean_no_bl["file_name_no_ts"].str.split('_').str[1]
@@ -575,7 +604,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
     fig4, ax = pl.subplots( nrows=1, ncols=1 )
     pl.bar(list(y_pos.keys()), percent_diff_means, yerr=percent_diff_stderr, error_kw=dict(lw=0.65, capsize=2, capthick=0.55), align='center', color=[0.33,0.5,0.65], alpha=1)
     pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=6)
-    pl.ylim(y_bottom-(y_bottom*0.1), y_top+(y_top*0.1))
+    pl.ylim(min(percent_diff_means-percent_diff_stderr-50), max(percent_diff_means+percent_diff_stderr+5))
     pl.margins(0.01,0)
     pl.subplots_adjust(bottom=0.22, left=0.12)
     pl.tight_layout()
@@ -593,7 +622,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
     fig5, ax = pl.subplots( nrows=1, ncols=1 )
     pl.bar(list(y_pos.keys()), percent_diff_medians, align='center', color=[0.12,0.35,1], alpha=1)
     pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=6)
-    pl.ylim(min(percent_diff_medians-(percent_diff_medians*0.1)), max(percent_diff_medians+(percent_diff_medians*0.1)))
+    pl.ylim(min(percent_diff_medians-(percent_diff_medians*0.25)), max(percent_diff_medians+(percent_diff_medians*0.25)))
     pl.margins(0.01,0)
     pl.subplots_adjust(bottom=0.25, left=0.15)
     pl.tight_layout()
@@ -611,7 +640,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
     fig6, ax = pl.subplots( nrows=1, ncols=1 )
     pl.bar(list(y_pos.keys()), percent_diff_means_no_outliers, yerr=percent_diff_stderr_no_outliers, error_kw=dict(lw=0.65, capsize=2, capthick=0.55), align='center', color=[0.62,0.07,0.41], alpha=1)
     pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=6)
-    pl.ylim(min(percent_diff_means_no_outliers-(percent_diff_stderr_no_outliers+percent_diff_means_no_outliers*0.15)), max(percent_diff_means_no_outliers+percent_diff_stderr_no_outliers+(percent_diff_means_no_outliers*0.15)))
+    pl.ylim(min(percent_diff_means_no_outliers-percent_diff_stderr_no_outliers-2), max(percent_diff_means_no_outliers+percent_diff_stderr_no_outliers+2))
     pl.margins(0.01,0)
     pl.subplots_adjust(bottom=0.22, left=0.12)
     pl.tight_layout()
@@ -630,7 +659,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
     fig7, ax = pl.subplots( nrows=1, ncols=1 )
     pl.bar(list(y_pos.keys()), percent_diff_medians_no_outliers, align='center', color=[0.89,0.07,0.41], alpha=1)
     pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=6)
-    pl.ylim(min(percent_diff_medians_no_outliers-(percent_diff_medians_no_outliers*0.1)), max(percent_diff_medians_no_outliers+(percent_diff_medians_no_outliers*0.1)))
+    pl.ylim(min(percent_diff_medians_no_outliers-(percent_diff_medians_no_outliers*0.2)), max(percent_diff_medians_no_outliers+(percent_diff_medians_no_outliers*0.2)))
     pl.margins(0.01,0)
     pl.subplots_adjust(bottom=0.22, left=0.12)
     pl.tight_layout()
@@ -647,7 +676,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
 
     # histogram
     fig8, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.hist(percent_diff_means[np.isfinite(percent_diff_means)].values, bins=18, color=['green'], align='mid', rwidth=0.92)
+    pl.hist(percent_diff_means[np.isfinite(percent_diff_means)].values, bins=30, color=['green'], align='mid', rwidth=0.92)
     pl.ylabel('Counts')
     pl.xlabel("Mean skin conductance % difference from baseline")
     pl.margins(0.01,0)
@@ -666,7 +695,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
     # histogram
     # shade boxes based on stats?
     fig9, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.hist(percent_diff_means_no_outliers[np.isfinite(percent_diff_means)].values, bins=18, color=[0.85,0.33,0], align='mid', rwidth=0.92)
+    pl.hist(percent_diff_means_no_outliers[np.isfinite(percent_diff_means)].values, bins=30, color=[0.85,0.33,0], align='mid', rwidth=0.92)
     pl.ylabel('Counts')
     pl.xlabel("Mean skin conductance % difference from baseline, no outliers")
     pl.margins(0.01,0)
@@ -681,22 +710,22 @@ def plot_results(Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, conti
     pl.close(fig9)
 
 
-    # for BERI protocol analysis:
-    if beri_exists == True:
-        fig10, ax = pl.subplots( nrows=1, ncols=1 )
-        pl.scatter(range(0,len(beri_df)), beri_df['total_eng'], c = 'k', marker='o', s=3, label='# engaged')
-        pl.scatter(range(0,len(beri_df)), beri_df['total_diseng'], c = 'b', marker='v', s=3, label="# disengaged")
-        pl.yticks(fontsize=8)
-        pl.legend()
-        pl.ylabel('# students')
-        pl.xlabel('Observation')
-        pl.ylim(0,20)
-        pl.xlim(0, len(beri_df))
-        pl.margins(0.01,0)
-        pl.subplots_adjust(bottom=0.2)
-        pl.tight_layout()
-        fig9.savefig(os.path.join(output_dir, 'number_engaged_students.pdf'), dpi = pref_dpi)
-        pl.close(fig10)
+    # # for BERI protocol analysis:
+    # if beri_exists == True:
+    #     fig10, ax = pl.subplots( nrows=1, ncols=1 )
+    #     pl.scatter(range(0,len(beri_df)), beri_df['total_eng'], c = 'k', marker='o', s=3, label='# engaged')
+    #     pl.scatter(range(0,len(beri_df)), beri_df['total_diseng'], c = 'b', marker='v', s=3, label="# disengaged")
+    #     pl.yticks(fontsize=8)
+    #     pl.legend()
+    #     pl.ylabel('# students')
+    #     pl.xlabel('Observation')
+    #     pl.ylim(0,20)
+    #     pl.xlim(0, len(beri_df))
+    #     pl.margins(0.01,0)
+    #     pl.subplots_adjust(bottom=0.2)
+    #     pl.tight_layout()
+    #     fig9.savefig(os.path.join(output_dir, 'number_engaged_students.pdf'), dpi = pref_dpi)
+    #     pl.close(fig10)
 
     return statistics_output, keywords, activity_stats, beri_df
 
@@ -797,6 +826,45 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_files, beri_e
 
     EDA_data_df = pd.concat(EDA_dataframe_list,keys=[os.path.basename(name) for name in EDA_list])
     EDA_data_df['sensor_ids'] = EDA_data_df.index.get_level_values(0).str.split('_').str[1]
+    # lines are to test:
+    beri_df = get_beri_protocol(working_dir, beri_files, beri_exists)
+    EDA_data_df['beri_obs'] = np.nan
+    #print(EDA_data_df)
+    #print(beri_df)
+
+
+    # for (columnName, columnData) in beri_df.iteritems():
+    #     print('Colunm Name : ', columnName)
+    #     print('Column Contents : ', columnData.values)
+    #     #EDA_data_df_merged = EDA_data_df.merge(columnData)
+
+
+    # for column in beri_df:
+    #     column_contents = beri_df[column]
+    #     print(column_contents)
+    #     print(type(column_contents))
+    #     column_name = column
+    #     print(column_name)
+    #     xx = np.where(column_name == EDA_data_df['sensor_ids'])
+    #     print(xx)
+    #     if column_name == EDA_data_df['sensor_ids']:
+    #         EDA_data_df_merged = EDA_data_df.merge(column_contents, how = 'left')
+        #EDA_data_df['beri_obs'] = beri_df[column]
+        #EDA_data_df_merged = EDA_data_df.merge(column_contents)
+    #     print(EDA_data_df['sensor_ids'])
+    #     if column_name == EDA_data_df['sensor_ids']:
+    #         EDA_data_df_merged = EDA_data_df.merge(column_contents, right_on='class_date_time', left_on='timestamp')
+    #
+
+    #for index, row in EDA_data_df[0:20].iterrows():
+        #print(row['sensor_ids'], row['timestamp'])
+        #print(beri_df.loc[row['sensor_ids'] == beri_df.columns])
+        #row['beri_obs'] = beri_df[beri_df(np.where(row['sensor_ids'] == beri_df.columns)[0,0])]
+
+    # indices for beri_df and student_overview_resampled are the same (datetimeindex)
+    #EDA_data_df_merged = EDA_data_df.merge(beri_df, left_on=['timestamp', 'sensor_ids'], how='left')
+
+    # good here:
     EDA_by_sensor = EDA_data_df.reset_index().drop('level_0', axis = 1).groupby('sensor_ids')
 
     # skin conductance for decomposition analysis
