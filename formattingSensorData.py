@@ -505,9 +505,6 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
         activity_mean, activity_stddev, activity_stderr, total_time, total_time_seconds, EDA_data_df, baseline_activities = get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df, EDA_data_df2, beri_exists)
 
     activity_mean = activity_mean.reset_index().rename(columns={'level_0': 'file_name'})
-    print("activity_mean:")
-    print(activity_mean)
-    print(" ")
 
     if beri_exists == True:
         activity_mean_beri = activity_mean_beri.reset_index()
@@ -558,12 +555,12 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
 
                     shutil.rmtree(calibration_sub_dir)
 
-        # finds mean baseline for each student, puts all baselines in a dataframe and sorts by sensor number
-        baselines = baseline_df.groupby(['file_name_no_ts'])['skin_conduct_baseline'].mean().reset_index()
+            # finds mean baseline for each student, puts all baselines in a dataframe and sorts by sensor number
+            baselines = baseline_df.groupby(['file_name_no_ts'])['skin_conduct_baseline'].mean().reset_index()
 
-        for i in range(0,len(baselines)):
-            if (baseline_df.groupby(['file_name_no_ts'])['skin_conduct_baseline'].max().reset_index())['skin_conduct_baseline'][i] > 2.5*(baseline_df.groupby(['file_name_no_ts'])['skin_conduct_baseline'].min().reset_index())['skin_conduct_baseline'][i]:
-                baselines['skin_conduct_baseline'][i] = np.nan
+            for i in range(0,len(baselines)):
+                if (baseline_df.groupby(['file_name_no_ts'])['skin_conduct_baseline'].max().reset_index())['skin_conduct_baseline'][i] > 2.5*(baseline_df.groupby(['file_name_no_ts'])['skin_conduct_baseline'].min().reset_index())['skin_conduct_baseline'][i]:
+                    baselines['skin_conduct_baseline'][i] = np.nan
 
         """
         remove baseline from dataframe, if it existed as part of the continuous data record; rename columns;
@@ -571,22 +568,10 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
         from actual sensor ID number; merge the dataframe containing sensor ID, activity mean skin conductance,
         and baselines for each student
         """
-        activity_mean_no_bl = activity_mean[activity_mean['activity'] != "Baseline"]
-        print("activity_mean_no_bl:")
-        print(activity_mean_no_bl)
-        print(" ")
-        activity_mean_no_bl = activity_mean_no_bl.rename(columns = {"skin_conduct":"skin_conduct_means"})
-        print("activity_mean_no_bl:")
-        print(activity_mean_no_bl)
-        print(" ")
+        activity_mean_no_bl = activity_mean[activity_mean['activity'] != "Baseline"].rename(columns = {"skin_conduct":"skin_conduct_means"})
         activity_mean_no_bl["file_name_no_ts"] = activity_mean_no_bl['file_name'].astype(str)
-        print("activity_mean_no_bl:")
-        print(activity_mean_no_bl)
-        print(" ")
         activity_mean_no_bl["file_name_no_ts"] = activity_mean_no_bl["file_name_no_ts"].str.split('_').str[1]
-        print("activity_mean_no_bl:")
-        print(activity_mean_no_bl)
-        print(" ")
+
         activity_mean_merged = activity_mean_no_bl.merge(baselines, on = ["file_name_no_ts"])
         print("activity_mean_merged:")
         print(activity_mean_merged)
@@ -635,8 +620,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
         print("Baselines:")
         print(baselines)
         print(" ")
-        activity_mean_no_bl = activity_mean[activity_mean['activity'] != "Baseline"]
-        activity_mean_no_bl = activity_mean_no_bl.rename(columns = {"skin_conduct":"skin_conduct_means"})
+        activity_mean_no_bl = activity_mean[activity_mean['activity'] != "Baseline"].rename(columns = {"skin_conduct":"skin_conduct_means"})
         activity_mean_no_bl["file_name_no_ts"] = activity_mean_no_bl['file_name'].astype(str)
         activity_mean_no_bl["file_name_no_ts"] = activity_mean_no_bl["file_name_no_ts"].str.split('_').str[1]
 
@@ -655,12 +639,12 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
             print(activity_mean_merged_beri)
             print(" ")
 
-        print("Full class baseline")
+        print("Entire semester baseline")
         print(" ")
 
 
     def outliers_to_nan(activity):
-        threshold = 2
+        threshold = 3
         percent_diffs = (activity["skin_conduct_means"] - activity["skin_conduct_baseline"]) / activity["skin_conduct_baseline"]
         mean = percent_diffs.mean()
         std = percent_diffs.std()
@@ -672,40 +656,71 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
 
     activity_mean_merged = activity_mean_merged.groupby(['activity']).apply(outliers_to_nan)
 
-# for grades vs. engagement:
-    if separate_baseline == True:
-        #percent_diff_means_no_outliers = activity_mean_merged[~activity_mean_merged['outlier']].groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).mean()*100)
-        activity_mean_merged = activity_mean_merged.rename(columns = {"file_name_no_ts":"sensor_ids"})
-        percent_diff_means_no_outliers_by_id = activity_mean_merged[~activity_mean_merged['outlier']].groupby(['activity','sensor_ids']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).mean()*100)
-        print("percent_diff_means_no_outliers_by_id:")
-        print(percent_diff_means_no_outliers_by_id)
-        print(" ")
-        grades_merged = grades.merge(percent_diff_means_no_outliers_by_id.loc[['Total']].to_frame(), left_on='sensor_ids', right_on='sensor_ids')
+    def calculate_percent_diff(row):
+        return ((row['skin_conduct_means'] - row['skin_conduct_baseline'])/row['skin_conduct_baseline'])*100
 
-    elif continuous_baseline == True:
-        percent_diff_means_no_outliers = activity_mean_merged[~activity_mean_merged['outlier']].groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).mean()*100)
-        activity_mean_merged = activity_mean_merged.rename(columns = {"file_name_no_ts":"sensor_ids"})
-        percent_diff_means_no_outliers_by_id = activity_mean_merged[~activity_mean_merged['outlier']].groupby(['activity','sensor_ids']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).mean()*100)
-        grades_merged = grades.merge(percent_diff_means_no_outliers_by_id.loc[['Total']].to_frame(), left_on='sensor_ids', right_on='sensor_ids').replace([np.inf, -np.inf], np.nan).dropna()
-        print(grades_merged)
+    new_column = activity_mean_merged.groupby(['sensor_ids']).apply(calculate_percent_diff)
+    activity_mean_merged['% diff'] = new_column.reset_index(level=0, drop=True).rename(columns = {"file_name_no_ts":"sensor_ids"})
+    print("activity_mean_merged:")
+    print(activity_mean_merged)
 
-    else:
-        percent_diff_means_no_outliers = activity_mean_merged[~activity_mean_merged['outlier']].groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).mean()*100)
-        print("percent_diff_means_no_outliers:")
-        print(percent_diff_means_no_outliers)
-        print(" ")
-        percent_diff_means_no_outliers_by_id = activity_mean_merged[~activity_mean_merged['outlier']].groupby(['activity','sensor_ids']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).mean()*100)
-        print(percent_diff_means_no_outliers_by_id.loc[['Total']])
-        grades_merged = grades.merge(percent_diff_means_no_outliers_by_id.loc[['Total']].to_frame(), left_on='sensor_ids', right_on='sensor_ids')
-        print(grades_merged)
+    percent_diff_means_no_outliers = activity_mean_merged.groupby(['activity']).mean()
+    percent_diff_means_no_outliers = percent_diff_means_no_outliers['% diff'].drop(['Total'], axis=0).sort_values()
+    print("percent_diff_means_no_outliers:")
+    print(percent_diff_means_no_outliers)
+    print(" ")
+
+    total_percent_diff = activity_mean_merged.loc[activity_mean_merged.activity == 'Total'].groupby(['sensor_ids']).mean()
+    print("total_percent_diff:")
+    print(total_percent_diff)
+
+    grades_merged = grades.merge(total_percent_diff, left_on='sensor_ids', right_on='sensor_ids')
+    print("grades_merged:")
+    print(grades_merged)
+
+
+    # if separate_baseline == True:
+    #     new_column = activity_mean_merged.groupby(['sensor_ids']).apply(calculate_percent_diff)
+    #     activity_mean_merged['% diff'] = new_column.reset_index(level=0, drop=True).rename(columns = {"file_name_no_ts":"sensor_ids"})
+    #
+    #     percent_diff_means_no_outliers = activity_mean_merged.groupby(['activity']).mean()
+    #     percent_diff_means_no_outliers = percent_diff_means_no_outliers['% diff'].drop(['Total'], axis=0).sort_values()
+    #
+    #     percent_diff_means_no_outliers_by_id = activity_mean_merged[~activity_mean_merged['outlier']].groupby(['activity','sensor_ids']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).mean()*100)
+    #     print("percent_diff_means_no_outliers_by_id:")
+    #     print(percent_diff_means_no_outliers_by_id)
+    #     print(" ")
+    #     grades_merged = grades.merge(percent_diff_means_no_outliers_by_id.loc[['Total']].to_frame(), left_on='sensor_ids', right_on='sensor_ids')
+    #
+    # elif continuous_baseline == True:
+    #     percent_diff_means_no_outliers = activity_mean_merged[~activity_mean_merged['outlier']].groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).mean()*100)
+    #     activity_mean_merged = activity_mean_merged.rename(columns = {"file_name_no_ts":"sensor_ids"})
+    #     percent_diff_means_no_outliers_by_id = activity_mean_merged[~activity_mean_merged['outlier']].groupby(['activity','sensor_ids']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).mean()*100)
+    #     grades_merged = grades.merge(percent_diff_means_no_outliers_by_id.loc[['Total']].to_frame(), left_on='sensor_ids', right_on='sensor_ids').replace([np.inf, -np.inf], np.nan).dropna()
+    #     print(grades_merged)
+    #
+    # else:
+    #     new_column = activity_mean_merged.groupby(['sensor_ids']).apply(calculate_percent_diff)
+    #     activity_mean_merged['% diff'] = new_column.reset_index(level=0, drop=True)
+    #
+    #     percent_diff_means_no_outliers = activity_mean_merged.groupby(['activity']).mean()
+    #     percent_diff_means_no_outliers = percent_diff_means_no_outliers['% diff'].drop(['Total'], axis=0).sort_values()
+    #
+    #     print("percent_diff_means_no_outliers:")
+    #     print(percent_diff_means_no_outliers)
+    #     print(" ")
+    #
+    #     percent_diff_means_no_outliers_by_id = activity_mean_merged[~activity_mean_merged['outlier']].groupby(['activity','sensor_ids']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).mean()*100)
+    #     grades_merged = grades.merge(percent_diff_means_no_outliers_by_id.loc[['Total']].to_frame(), left_on='sensor_ids', right_on='sensor_ids')
+    #     print(grades_merged)
 
 
     fig1, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.scatter(grades_merged['Final Grade'], grades_merged[0], c = 'k', marker='o', s=12)
+    pl.scatter(grades_merged['Final Grade'], grades_merged['% diff'], c = 'k', marker='o', s=12)
     pl.yticks(fontsize=9, fontweight='bold')
     pl.xticks(fontsize=9, fontweight='bold')
     pl.xlim(50,100)
-    pl.ylim(min(grades_merged[0]-15), max(grades_merged[0]+15))
+    pl.ylim(min(grades_merged['% diff']-15), max(grades_merged['% diff']+15))
     pl.ylabel('Mean skin conductance % difference\n(semester - baseline), no outliers', fontweight='bold')
     pl.xlabel('Final Course Grade', fontweight='bold')
     pl.margins(0.01,0)
@@ -720,11 +735,11 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
     pl.close(fig1)
 
     fig2, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.scatter(grades_merged['Midterm #1'], grades_merged[0], c = 'r', marker='o', s=12)
+    pl.scatter(grades_merged['Midterm #1'], grades_merged['% diff'], c = 'r', marker='o', s=12)
     pl.yticks(fontsize=9, fontweight='bold')
     pl.xticks(fontsize=9, fontweight='bold')
     pl.xlim(50,100)
-    pl.ylim(min(grades_merged[0]-15), max(grades_merged[0]+15))
+    pl.ylim(min(grades_merged['% diff']-15), max(grades_merged['% diff']+15))
     pl.ylabel('Mean skin conductance % difference\n(semester - baseline), no outliers', fontweight='bold')
     pl.xlabel('Midterm #1 Grade', fontweight='bold')
     pl.margins(0.01,0)
@@ -739,11 +754,11 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
     pl.close(fig2)
 
     fig3, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.scatter(grades_merged['Midterm #2'], grades_merged[0], c = 'g', marker='o', s=12)
+    pl.scatter(grades_merged['Midterm #2'], grades_merged['% diff'], c = 'g', marker='o', s=12)
     pl.yticks(fontsize=9, fontweight='bold')
     pl.xticks(fontsize=9, fontweight='bold')
     pl.xlim(50,100)
-    pl.ylim(min(grades_merged[0]-15), max(grades_merged[0]+15))
+    pl.ylim(min(grades_merged['% diff']-15), max(grades_merged['% diff']+15))
     pl.ylabel('Mean skin conductance % difference\n(semester - baseline), no outliers', fontweight='bold')
     pl.xlabel('Midterm #2 Grade', fontweight='bold')
     pl.margins(0.01,0)
@@ -758,11 +773,11 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
     pl.close(fig3)
 
     fig4, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.scatter(grades_merged['Final Exam'], grades_merged[0], c = 'b', marker='o', s=12)
+    pl.scatter(grades_merged['Final Exam'], grades_merged['% diff'], c = 'b', marker='o', s=12)
     pl.yticks(fontsize=9, fontweight='bold')
     pl.xticks(fontsize=9, fontweight='bold')
     pl.xlim(50,100)
-    pl.ylim(min(grades_merged[0]-15), max(grades_merged[0]+15))
+    pl.ylim(min(grades_merged['% diff']-15), max(grades_merged['% diff']+15))
     pl.ylabel('Mean skin conductance % difference\n(semester - baseline), no outliers', fontweight='bold')
     pl.xlabel('Final Exam Grade', fontweight='bold')
     pl.margins(0.01,0)
@@ -778,82 +793,44 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
 
 
 # mean/median percent difference between baseline and activity
-    percent_diff_stderr_no_outliers = activity_mean_merged[~activity_mean_merged['outlier']].groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).sem()*100)
-    percent_diff_stddev_no_outliers = activity_mean_merged[~activity_mean_merged['outlier']].groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).std()*100)
-    percent_diff_medians_no_outliers = activity_mean_merged[~activity_mean_merged['outlier']].groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).median()*100)
-
-    percent_diff_means = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).mean()*100)
-    percent_diff_medians = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).median()*100)
-    percent_diff_stddev = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).std()*100)
-    percent_diff_stderr = activity_mean_merged.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).sem()*100)
-
+    percent_diff_stderr_no_outliers = activity_mean_merged.groupby(['activity']).sem()
+    percent_diff_stderr_no_outliers = percent_diff_stderr_no_outliers['% diff'].drop(['Total'], axis=0)
+    percent_diff_stddev_no_outliers = activity_mean_merged.groupby(['activity']).std()
+    percent_diff_stddev_no_outliers = percent_diff_stddev_no_outliers['% diff'].drop(['Total'], axis=0)
+    percent_diff_medians_no_outliers = activity_mean_merged.groupby(['activity']).median()
+    percent_diff_medians_no_outliers = percent_diff_medians_no_outliers['% diff'].drop(['Total'], axis=0)
 
     if beri_exists == True:
         # mean/median percent differences between baseline and activity during only engaged behaviors (based on BERI)
-        activity_mean_merged_beri = activity_mean_merged_beri.groupby(['activity']).apply(outliers_to_nan)
-        percent_diff_means_no_outliers_beri = activity_mean_merged_beri[~activity_mean_merged_beri['outlier']].groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).mean()*100)
-        percent_diff_stderr_no_outliers_beri = activity_mean_merged_beri[~activity_mean_merged_beri['outlier']].groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).sem()*100)
-        percent_diff_stddev_no_outliers_beri = activity_mean_merged_beri[~activity_mean_merged_beri['outlier']].groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).std()*100)
-        percent_diff_medians_no_outliers_beri = activity_mean_merged_beri[~activity_mean_merged_beri['outlier']].groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).median()*100)
+        new_column = activity_mean_merged_beri.groupby(['sensor_ids']).apply(calculate_percent_diff)
+        activity_mean_merged_beri['% diff'] = new_column.reset_index(level=0, drop=True).rename(columns = {"file_name_no_ts":"sensor_ids"})
 
-        percent_diff_means_beri = activity_mean_merged_beri.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).mean()*100)
-        percent_diff_medians_beri = activity_mean_merged_beri.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).median()*100)
-        percent_diff_stddev_beri = activity_mean_merged_beri.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).std()*100)
-        percent_diff_stderr_beri = activity_mean_merged_beri.groupby(['activity']).apply(lambda row: ((row["skin_conduct_means"] - row["skin_conduct_baseline"])/row["skin_conduct_baseline"]).sem()*100)
+        percent_diff_means_no_outliers_beri = activity_mean_merged_beri.groupby(['activity']).mean()
+        percent_diff_means_no_outliers_beri = percent_diff_means_no_outliers_beri['% diff'].drop(['Total'], axis=0).sort_values()
+
+        percent_diff_stderr_no_outliers_beri = activity_mean_merged_beri.groupby(['activity']).sem()
+        percent_diff_stderr_no_outliers_beri = percent_diff_stderr_no_outliers_beri['% diff'].drop(['Total'], axis=0)
+        percent_diff_stddev_no_outliers_beri = activity_mean_merged_beri.groupby(['activity']).std()
+        percent_diff_stddev_no_outliers_beri = percent_diff_stddev_no_outliers_beri['% diff'].drop(['Total'], axis=0)
+        percent_diff_medians_no_outliers_beri = activity_mean_merged_beri.groupby(['activity']).median()
+        percent_diff_medians_no_outliers_beri = percent_diff_medians_no_outliers_beri['% diff'].drop(['Total'], axis=0)
 
 
     # for statistics csv output
     if beri_exists == True:
-        statistics_output = percent_diff_means, percent_diff_stddev, percent_diff_stderr, percent_diff_means_no_outliers, \
-                            percent_diff_stddev_no_outliers, percent_diff_stderr_no_outliers, percent_diff_means_beri, \
+        statistics_output = percent_diff_means_no_outliers, percent_diff_stddev_no_outliers, percent_diff_stderr_no_outliers, percent_diff_means_beri, \
                             percent_diff_stddev_beri, percent_diff_stderr_beri, percent_diff_means_no_outliers_beri, \
-                            percent_diff_stddev_no_outliers_beri, percent_diff_stderr_no_outliers_beri, percent_diff_medians, \
+                            percent_diff_stddev_no_outliers_beri, percent_diff_stderr_no_outliers_beri, percent_diff_medians_no_outliers_beri, \
                             total_time, total_time_seconds
     elif beri_exists == False:
-        statistics_output = percent_diff_means, percent_diff_stddev, percent_diff_stderr, percent_diff_means_no_outliers, \
-                            percent_diff_stddev_no_outliers, percent_diff_stderr_no_outliers, percent_diff_medians, \
-                            total_time, total_time_seconds
+        statistics_output = percent_diff_means_no_outliers, percent_diff_stddev_no_outliers, percent_diff_stderr_no_outliers, \
+                            percent_diff_medians_no_outliers, total_time, total_time_seconds
 
     # x-axis labels = activity names
-    percent_diff_means_idx = list(percent_diff_means.index)
+    percent_diff_means_idx = list(percent_diff_means_no_outliers.index)
     y_pos = {key: percent_diff_means_idx[key-1] for key in range(1, (len(percent_diff_means_idx)+1), 1)}
     keywords = y_pos.values()
 
-    # mean percent difference
-    fig5, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.bar(list(y_pos.keys()), percent_diff_means, yerr=percent_diff_stderr, error_kw=dict(lw=0.65, capsize=2, capthick=0.55), align='center', color=[0.33,0.5,0.65], alpha=1)
-    pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=6)
-    pl.ylim(min((percent_diff_means-percent_diff_stderr-10)), max(percent_diff_means+percent_diff_stderr+15))
-    pl.margins(0.01,0)
-    pl.subplots_adjust(bottom=0.22, left=0.12)
-    pl.tight_layout()
-    pl.ylabel('Mean skin conductance % difference\n(activity - baseline)', fontsize=6)
-    pl.yticks(fontsize=6)
-    if separate_baseline == True :
-        fig5.savefig(os.path.join(output_dir, 'activity_means_separate_BL.pdf'), dpi = pref_dpi, bbox_inches='tight')
-    elif continuous_baseline == True :
-        fig5.savefig(os.path.join(output_dir, 'activity_means_continuous_BL.pdf'), dpi = pref_dpi, bbox_inches='tight')
-    else:
-        fig5.savefig(os.path.join(output_dir, 'activity_means_entire_semester_BL.pdf'), dpi = pref_dpi, bbox_inches='tight')
-    pl.close(fig5)
-
-    # median percent difference
-    fig6, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.bar(list(y_pos.keys()), percent_diff_medians, align='center', color=[0.12,0.35,1], alpha=1)
-    pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=6)
-    pl.ylim(min(percent_diff_medians-5), max(percent_diff_medians+10))
-    pl.margins(0.01,0)
-    pl.subplots_adjust(bottom=0.25, left=0.15)
-    pl.tight_layout()
-    pl.yticks(fontsize=6)
-    pl.ylabel('Median skin conductance % difference\n(activity - baseline)', fontsize=7)
-    if separate_baseline == True :
-        fig6.savefig(os.path.join(output_dir, 'activity_medians_separate_BL.pdf'), dpi = pref_dpi, bbox_inches='tight')
-    elif continuous_baseline == True :
-        fig6.savefig(os.path.join(output_dir, 'activity_medians_continuous_BL.pdf'), dpi = pref_dpi, bbox_inches='tight')
-    else:
-        fig6.savefig(os.path.join(output_dir, 'activity_medians_entire_semester_BL.pdf'), dpi = pref_dpi, bbox_inches='tight')
-    pl.close(fig6)
 
     # mean percent difference, no outliers
     fig7, ax = pl.subplots( nrows=1, ncols=1 )
@@ -894,25 +871,8 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
 
 
     # histogram
-    fig9, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.hist(percent_diff_means[np.isfinite(percent_diff_means)].values, bins=26, color=['green'], align='mid', rwidth=0.92)
-    pl.ylabel('Counts')
-    pl.xlabel("Mean skin conductance % difference from baseline")
-    pl.margins(0.01,0)
-    pl.subplots_adjust(bottom=0.22, left=0.12)
-    pl.tight_layout()
-    if separate_baseline == True :
-        fig9.savefig(os.path.join(output_dir, 'activity_means_separate_BL_hist.pdf'), dpi = pref_dpi, bbox_inches='tight')
-    elif continuous_baseline == True :
-        fig9.savefig(os.path.join(output_dir, 'activity_means_continuous_BL_hist.pdf'), dpi = pref_dpi, bbox_inches='tight')
-    else:
-        fig9.savefig(os.path.join(output_dir, 'activity_means_entire_semester_BL_hist.pdf'), dpi = pref_dpi, bbox_inches='tight')
-    pl.close(fig8)
-
-
-    # histogram
     fig10, ax = pl.subplots( nrows=1, ncols=1 )
-    pl.hist(percent_diff_means_no_outliers[np.isfinite(percent_diff_means)].values, bins=26, color=[0.85,0.33,0], align='mid', rwidth=0.92)
+    pl.hist(percent_diff_means_no_outliers[np.isfinite(percent_diff_means_no_outliers)].values, bins=26, color=[0.85,0.33,0], align='mid', rwidth=0.92)
     pl.ylabel('Counts')
     pl.xlabel("Mean skin conductance % difference from baseline, no outliers")
     pl.margins(0.01,0)
@@ -980,11 +940,11 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
         pl.close(fig13)
 
 
-    activity_stats = activity_mean_merged_beri
-
     if beri_exists == True:
+        activity_stats = activity_mean_merged_beri
         return statistics_output, keywords, activity_stats, beri_df
     else:
+        activity_stats = activity_mean_no_bl
         return statistics_output, keywords, activity_stats, None
 
 
@@ -1006,24 +966,21 @@ def save_output_csv(statistics_output, output_dir, keywords, activity_stats, ber
     if beri_exists == True:
         cols = [keywords, statistics_output[0], statistics_output[1], statistics_output[2], statistics_output[3], \
                 statistics_output[4], statistics_output[5], statistics_output[6], statistics_output[7], statistics_output[8], \
-                statistics_output[9], statistics_output[10], statistics_output[11], statistics_output[12], statistics_output[13], \
-                statistics_output[14]]
+                statistics_output[9], statistics_output[10], statistics_output[11]]
         out_df = pd.DataFrame(cols)
         out_df = out_df.T
-        out_df.to_csv(os.path.join(output_dir, filename), index=False, header=['Activity', 'Mean % diff', 'Std. dev. of mean % diff', \
-                    'Std. err. of mean % diff', 'Mean % diff, no outliers', 'Std. dev. of mean % diff, no outliers', \
+        out_df.to_csv(os.path.join(output_dir, filename), index=False, header=['Activity', 'Mean % diff, no outliers', 'Std. dev. of mean % diff, no outliers', \
                     'Std. err. of mean % diff, no outliers', 'Mean % diff, BERI', 'Std. dev. of mean % diff, BERI', \
                     'Std. err. of mean % diff, BERI', 'Mean % diff, BERI no outliers', 'Std. dev. of mean % diff, BERI no outliers',\
-                    'Std. err. of mean % diff, BERI no outliers', 'Median % diff', 'Total time', 'Total time (sec)'])
+                    'Std. err. of mean % diff, BERI no outliers', 'Median % diff, BERI no outliers', 'Total time', 'Total time (sec)'])
 
     elif beri_exists == False:
         cols = [keywords, statistics_output[0], statistics_output[1], statistics_output[2], statistics_output[3], \
-                statistics_output[4], statistics_output[5], statistics_output[6], statistics_output[7], statistics_output[8]]
+                statistics_output[4], statistics_output[5]]
         out_df = pd.DataFrame(cols)
         out_df = out_df.T
-        out_df.to_csv(os.path.join(output_dir, filename), index=False, header=['Activity', 'Mean % diff', 'Std. dev. of mean % diff', \
-                    'Std. err. of mean % diff', 'Mean % diff, no outliers', 'Std. dev. of mean % diff, no outliers', \
-                    'Std. err. of mean % diff, no outliers', 'Median % diff', 'Total time', 'Total time (sec)'])
+        out_df.to_csv(os.path.join(output_dir, filename), index=False, header=['Activity', 'Mean % diff, no outliers', 'Std. dev. of mean % diff, no outliers', \
+                    'Std. err. of mean % diff, no outliers', 'Median % diff, no outliers', 'Total time', 'Total time (sec)'])
 
 
     # raw skin conductance values for each sensor id, each activity
