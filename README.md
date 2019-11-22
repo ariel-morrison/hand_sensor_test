@@ -1,5 +1,5 @@
 
-# "Test" repository for simple hand sensor data analysis
+# Repository for hand sensor data analysis
 ### Written by Ariel Morrison, University of Colorado/Cooperative Institute for Research in Environmental Sciences, ariel dot morrison at colorado dot edu
 
 *Description: This code performs a simple continuous decomposition analysis on electrodermal activity data downloaded from an Empatica E4 sensor.*
@@ -18,7 +18,7 @@
 11. Spreadsheet where grades are stored: $grade_files -- e.g., "ENV1000_grades.xlsx" (put it in quotes)
 
 
-###**To RUN:**
+**To RUN:**
 
 **Do steps 1-2 the FIRST time you run the code:**
 
