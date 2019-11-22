@@ -87,7 +87,7 @@ Example commands:
 *The above figures are averages across all students.*
 
 
-3 .csv files with statistics:
+4 .csv files with statistics:
 - for each activity: mean and median percent difference between activity and baseline skin conductance, mean percent difference without outliers, std. deviation and std. error for mean percent difference, total time (in seconds) spent on each activity
 - mean/standard deviation/standard error of skin conductance values for all sensors, all activities
 - mean/standard deviation/standard error of number of engaged/disengaged students during class activities, based on BERI protocol
@@ -97,6 +97,6 @@ Example commands:
 
 # Common sources of error:
 - Incorrect working directory. working_dir must be the directory where all input data are stored.
-- Omitting user inputs. All 9 of the user-defined inputs must be included when calling the script.
+- Omitting user inputs. All 11 of the user-defined inputs must be included when calling the script.
 - Incorrect user inputs. All Boolean inputs can only be True/False.
 - Timing format is incorrect. When recording the activity timing in a spreadsheet, the format must always be YYYYMMDDHHMMSS. If the day and month columns are switched, the month column may end up out of range (e.g., if the date is September 28 and the month/day columns are switched then there will be an error because there are not 28 months).
