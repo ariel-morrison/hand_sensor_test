@@ -525,6 +525,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
         print(activity_mean_beri)
         beri_df = get_beri_protocol(working_dir, beri_files, beri_exists)
         beri_data = get_beri_for_plotting(working_dir, beri_files, beri_exists)
+
     else:
         activity_mean, activity_stddev, activity_stderr, total_time, total_time_seconds, EDA_data_df, baseline_activities = get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df, EDA_data_df2, beri_exists)
 
@@ -622,7 +623,9 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
         if beri_exists == True:
             baselines = activity_mean_beri[activity_mean_beri['activity'] == "Baseline"][["file_name", "skin_conduct"]]
             baselines = baselines.rename(columns = {"skin_conduct":"skin_conduct_baseline"})
-
+            print("baselines:")
+            print(baselines)
+            print(" ")
             activity_mean_no_bl_beri = activity_mean_beri[activity_mean_beri['activity'] != "Baseline"]
             activity_mean_no_bl_beri["file_name_no_ts"] = activity_mean_no_bl_beri['file_name'].astype(str)
             activity_mean_no_bl_beri["file_name_no_ts"] = activity_mean_no_bl_beri["file_name_no_ts"].str.split('_').str[1]
@@ -673,7 +676,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
 
     percent_diff_means_no_outliers = activity_mean_merged[~activity_mean_merged['outlier']].groupby(['activity']).mean()
     percent_diff_means_no_outliers = percent_diff_means_no_outliers['% diff'].drop(['Total'], axis=0)
-    
+
     # mean/median percent difference between baseline and activity
     activity_mean_merged = activity_mean_merged.drop(['file_name', 'outlier'], axis=1)
     percent_diff_stderr_no_outliers = activity_mean_merged.groupby(['activity']).sem()
