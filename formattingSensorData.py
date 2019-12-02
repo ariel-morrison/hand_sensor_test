@@ -588,6 +588,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
         activity_mean_no_bl["file_name_no_ts"] = activity_mean_no_bl["file_name_no_ts"].str.split('_').str[1]
 
         activity_mean_merged = activity_mean_no_bl.merge(baselines, on = ["file_name_no_ts"])
+        activity_mean_merged = activity_mean_merged.rename(columns = {'file_name_no_ts':'sensor_ids'})
 
         if beri_exists == True:
             activity_mean_no_bl_beri = activity_mean_beri[activity_mean_beri['activity'] != "Baseline"]
@@ -595,6 +596,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
             activity_mean_no_bl_beri["file_name_no_ts"] = activity_mean_no_bl_beri['file_name'].astype(str)
             activity_mean_no_bl_beri["file_name_no_ts"] = activity_mean_no_bl_beri["file_name_no_ts"].str.split('_').str[1]
             activity_mean_merged_beri = activity_mean_no_bl_beri.merge(baselines, on = ["file_name_no_ts"])
+            activity_mean_merged_beri = activity_mean_merged_beri.rename(columns = {"file_name_no_ts":"sensor_ids"})
             print("activity_mean_merged_beri:")
             print(activity_mean_merged_beri)
             print(" ")
@@ -669,6 +671,8 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
         print(" ")
 
 
+    print("activity_mean_merged:")
+    print(activity_mean_merged)
     new_column = activity_mean_merged.groupby(['sensor_ids']).apply(calculate_percent_diff)
     activity_mean_merged['% diff'] = new_column.reset_index(level=0, drop=True).rename(columns = {"file_name_no_ts":"sensor_ids"})
     activity_mean_merged = activity_mean_merged.groupby(['activity']).apply(outliers_to_nan)
