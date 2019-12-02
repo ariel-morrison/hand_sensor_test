@@ -39,7 +39,7 @@ Note: If you get an error message "Error returned non-zero exit status 1," run t
 
 
 
-###**If you've already installed a virtual environment in your working directory, start here:**
+**If you've already installed a virtual environment in your working directory, start here:**
 
 3) Activate your virtual environment:
 
@@ -81,14 +81,13 @@ Example commands:
 - bar chart of mean percent difference between activity and baseline skin conductance
 - bar chart of mean percent difference between activity and baseline skin conductance, outliers removed
 - bar chart of median percent difference between activity and baseline skin conductance
-- mean number of students exhibiting engaged and disengaged behaviors during each class activity, based on BERI protocol
 - histogram of mean percent difference between activity and baseline skin conductance
 
 *The above figures are averages across all students.*
 
 
 4 .csv files with statistics:
-- for each activity: mean and median percent difference between activity and baseline skin conductance, mean percent difference without outliers, std. deviation and std. error for mean percent difference, total time (in seconds) spent on each activity
+- for each activity: mean and median percent difference between activity and baseline skin conductance, std. deviation and std. error for mean percent difference, total time (in seconds) spent on each activity
 - mean/standard deviation/standard error of skin conductance values for all sensors, all activities
 - mean/standard deviation/standard error of number of engaged/disengaged students during class activities, based on BERI protocol
 - grade breakdown, separated by STEM/non-STEM and gender
