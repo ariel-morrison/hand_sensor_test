@@ -223,6 +223,9 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df, EDA_da
 
     x_out = xcel.apply(lambda row : EDA_data_df[(EDA_data_df['timestamp']>=row['datetime_start'])&(EDA_data_df['timestamp']<row['datetime_end'])].assign(activity=row['Activity']), axis=1)
     activity_mean = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].mean()
+    print("activity_mean:")
+    print(activity_mean)
+    print(" ")
     activity_stddev = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].std()
     activity_stderr = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].sem()
 
@@ -273,7 +276,6 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df, EDA_da
     xcel['total_time'] = pd.to_datetime(xcel['datetime_end'], infer_datetime_format=True) - pd.to_datetime(xcel['datetime_start'], infer_datetime_format=True)
     total_time = xcel[['Activity','total_time']]
     total_time = total_time.set_index('Activity')
-    #total_time = total_time.drop(['Total'], axis=0)
     if (total_time.index == 'Baseline').any() == True:
         total_time = total_time.drop(['Baseline'], axis=0)
     total_time = total_time.groupby(['Activity'])['total_time'].sum()
@@ -282,7 +284,6 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df, EDA_da
     xcel['total_time_seconds'] = xcel['total_time'].dt.total_seconds()
     total_time_seconds = xcel[['Activity', 'total_time_seconds']]
     total_time_seconds = total_time_seconds.set_index('Activity')
-    #total_time_seconds = total_time_seconds.drop(['Total'], axis=0)
     if (total_time_seconds.index == 'Baseline').any() == True:
         total_time_seconds = total_time_seconds.drop(['Baseline'], axis=0)
     total_time_seconds = total_time_seconds.groupby(['Activity'])['total_time_seconds'].sum()
@@ -367,7 +368,7 @@ def get_beri_protocol(working_dir, beri_files, beri_exists):
 
 
 
-def get_grades(working_dir, grade_files, EDA_by_sensor):
+def get_grades(working_dir, grade_files, EDA_by_sensor, output_dir):
     """
     Input: working directory (working_dir) where all data are downloaded from Empatica website;
             spreadsheet (grade_files) where grades and students' sensor numbers are recorded
@@ -420,12 +421,12 @@ def get_grades(working_dir, grade_files, EDA_by_sensor):
                                              female['Midterm #1'].sem(), female['Midterm #2'].sem(), female['Final Exam'].sem(), female['Final Grade'].sem(),
                                              male['Midterm #1'].sem(), male['Midterm #2'].sem(), male['Final Exam'].sem(), male['Final Grade'].sem()]}).round(2)
 
-    sep_grades_df.to_csv("separated grades.csv")
+    sep_grades_df.to_csv(os.path.join(output_dir, "separated_grades_demographics.csv"))
 
     clicker_q = pd.read_excel(os.path.join(working_dir, "ATOC1060_Fall2018_Clickers_IRBresearch.xlsx"), usecols="A,E:F")
     clicker_q_df = clicker_q.reset_index().groupby("Lecture Date").mean()
     clicker_q_df['avg%correct'] = clicker_q_df[['%correct', '%correct 2nd time']].mean(axis=1)
-    clicker_q_df.to_csv("clicker questions.csv")
+    clicker_q_df.to_csv(os.path.join(output_dir,"clicker_questions_percent_correct.csv"))
 
 
     print("Completed grades")
@@ -482,7 +483,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
 
 
     if grades_exist == True:
-        sep_grades_df, clicker_q_df, grades = get_grades(working_dir, grade_files, EDA_by_sensor)
+        sep_grades_df, clicker_q_df, grades = get_grades(working_dir, grade_files, EDA_by_sensor, output_dir)
 
     def outliers_to_nan(activity):
         threshold = 3
@@ -1153,7 +1154,7 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_exists, beri_
     statistics_output, keywords, activity_stats, beri_df = plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_baseline, continuous_baseline, beri_exists, EDA_by_sensor, grades_exist)
 
     if grades_exist == True:
-        sep_grades_df, clicker_q_df, grades = get_grades(working_dir, grade_files, EDA_by_sensor)
+        sep_grades_df, clicker_q_df, grades = get_grades(working_dir, grade_files, EDA_by_sensor, output_dir)
 
     save_output_csv(statistics_output, output_dir, keywords, activity_stats, beri_exists)
 
