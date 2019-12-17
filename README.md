@@ -3,6 +3,7 @@
 ### Written by Ariel Morrison, University of Colorado/Cooperative Institute for Research in Environmental Sciences, ariel dot morrison at colorado dot edu
 Reference for controlled setting: Morrison, A.L. et al. (2019), Quantifying student engagement in learning about climate change using galvanic hand sensors in a controlled educational setting. Climatic Change, https://doi.org/10.1007/s10584-019-02576-6.
 
+
 *Description: This code performs a simple continuous decomposition analysis on electrodermal activity data downloaded from an Empatica E4 sensor.*
 
 
