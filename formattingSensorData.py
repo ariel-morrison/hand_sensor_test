@@ -236,13 +236,10 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df, EDA_da
     xcel_activities = xcel_activities.reset_index().set_index('Activity')
     xcel_activities['datetime_start'] = pd.to_datetime(xcel_activities['datetime_start'])
     xcel_activities['datetime_end'] = pd.to_datetime(xcel_activities['datetime_end'])
-    # idx = xcel_activities.index
-    # print(idx)
-    # if idx.contains('Exam') == True:
-    #     xcel_activities = xcel_activities[~idx.contains("Exam")]
-    #
-    # print("xcel_activities:")
-    # print(xcel_activities)
+
+    if xcel_activities.index.contains('Exam') == True:
+        xcel_activities = xcel_activities[~xcel_activities.index.str.startswith('Exam')]
+
     EDA_data_df['timestamp'] = pd.to_datetime(EDA_data_df['timestamp'])
 
     act_start = xcel_activities['datetime_start']
@@ -1034,7 +1031,7 @@ def save_output_csv(statistics_output, output_dir, keywords, activity_stats, ber
 
     if beri_exists == True:
         cols_to_keep = ['class_date_time','total_eng','total_diseng']
-        #export_beri = beri_df[cols_to_keep].to_csv(os.path.join(output_dir, 'beri_protocol_stats.csv'), index = None, header=True)
+        export_beri = beri_df[cols_to_keep].to_csv(os.path.join(output_dir, 'beri_protocol_stats.csv'), index = None, header=True)
 
     print("Saved all files to output directory")
     print(" ")
@@ -1129,7 +1126,7 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_exists, beri_
 
         # mask EDA_data_df2 to only include skin conductance during "engaged" behaviors
         filter1 = EDA_data_df2["skin_conduct"] > 0
-        filter2 = EDA_data_df2["beri_obs"] != False
+        filter2 = EDA_data_df2["beri_obs"] != False # can change this flag to True if only want to look at "distracted" behavior engagement
         EDA_data_df2.where(filter1 & filter2, inplace = True)
         # EDA_data_df2_to_save = EDA_data_df2.drop(['level_0', 'level_1'], axis=1)
         # EDA_data_df2_to_save.to_csv('EDA_out_with_beri2.csv')
