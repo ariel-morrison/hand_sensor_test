@@ -734,7 +734,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
             percent_diff_medians_no_outliers_beri = activity_mean_merged_beri.groupby(['activity']).median()
             percent_diff_medians_no_outliers_beri = percent_diff_medians_no_outliers_beri['% diff']
 
-            total_percent_diff = activity_mean_merged.groupby(['sensor_ids']).mean()
+            total_percent_diff = activity_mean_merged_beri.groupby(['sensor_ids']).mean()
             total_percent_diff = total_percent_diff['% diff']
 
             if grades_exist == True:
