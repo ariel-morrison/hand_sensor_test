@@ -1,7 +1,7 @@
 
 # Repository for hand sensor data analysis
 ### Written by Ariel Morrison, University of Colorado/Cooperative Institute for Research in Environmental Sciences, ariel dot morrison at colorado dot edu
-### Reference for controlled setting: Morrison, A.L. et al. (2019),
+Reference for controlled setting: Morrison, A.L. et al. (2019), Quantifying student engagement in learning about climate change using galvanic hand sensors in a controlled educational setting. Climatic Change, https://doi.org/10.1007/s10584-019-02576-6.
 
 *Description: This code performs a simple continuous decomposition analysis on electrodermal activity data downloaded from an Empatica E4 sensor.*
 
@@ -52,6 +52,8 @@ Example commands:
 
 - Running with BERI protocol, continuous baseline, and grades
 `python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/1060data" ATOC1060TimingComponents.xlsx total_timing_with_baseline True "beri_files" 4 0.25 800 False True "ATOC-1060-2018_Grades.xlsx" True`
+- Running without BERI protocol, continuous baseline, without grades
+`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/1060data" ATOC1060TimingComponents.xlsx total_timing_with_baseline False "no_beri" 4 0.25 800 False True "no grades" False`
 - Running with BERI protocol, entire semester baseline, and grades
 `python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/ATOC1060_EducationResearch/hand_sensor_test-master/1060data" ATOC1060TimingComponents.xlsx total_timing True "beri_files" 4 0.25 800 False False "ATOC-1060-2018_Grades.xlsx" True`
 
