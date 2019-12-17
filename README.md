@@ -4,7 +4,7 @@
 Reference for controlled setting: Morrison, A.L. et al. (2019), Quantifying student engagement in learning about climate change using galvanic hand sensors in a controlled educational setting. Climatic Change, https://doi.org/10.1007/s10584-019-02576-6.
 
 
-*Description: This code performs a simple continuous decomposition analysis on electrodermal activity data downloaded from an Empatica E4 sensor.*
+*Description: This script analyzes skin conductance data from Empatica E4 hand sensors. It reads and unzips zip archives downloaded from the Empatica website, performs a simple continuous decomposition analysis, calculates the mean percent difference in skin conductance between an activity and a person's baseline, and saves the analyzed data as a .csv output.*
 
 
 **To RUN:**
@@ -51,17 +51,23 @@ Note: If a package needs to be uninstalled before the requirements can be instal
 
 Example commands:
 
-- Running with BERI protocol, continuous baseline, and grades
+- Running with BERI protocol, continuous baseline, and grades:
 `python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/1060data" ATOC1060TimingComponents.xlsx total_timing_with_baseline True "beri_files" 4 0.25 800 False True "ATOC-1060-2018_Grades.xlsx" True`
-- Running without BERI protocol, continuous baseline, without grades
+
+- Running without BERI protocol, continuous baseline, without grades:
 `python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/1060data" ATOC1060TimingComponents.xlsx total_timing_with_baseline False "no_beri" 4 0.25 800 False True "no grades" False`
-- Running with BERI protocol, entire semester baseline, and grades
+
+- Running with BERI protocol, entire semester baseline, and grades:
 `python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/ATOC1060_EducationResearch/hand_sensor_test-master/1060data" ATOC1060TimingComponents.xlsx total_timing True "beri_files" 4 0.25 800 False False "ATOC-1060-2018_Grades.xlsx" True`
+
+- Running witout BERI protocol, continous baseline, without grades:
+`python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/ATOC1060_EducationResearch/hand_sensor_test-master/1060data" ATOC1060TimingComponents.xlsx total_timing_with_baseline False "no_beri" 4 0.25 800 False True "no_grades" False`
+
 
 **User-defined inputs:**
 1. Working directory, where all downloaded zip archives are stored and where all output will be saved: $working_dir  --  e.g., "/Users/amorrison/Projects/hand_sensor_test/empaticadata" (put it in quotes)
 2. Spreadsheet with component timing, including file extension: $timing_xcel -- e.g., study_timing.xlsx, study_timing.xls (no quotes, needs the file extension)
-3. Sheet name in $timing_xcel: $sheetname -- e.g., exp_session (no quotes)
+3. Sheet name in $timing_xcel: $sheetname -- e.g., total_timing (no quotes)
 4. Are you using BERI observations? True or false: $beri_exists -- e.g., True (**NOTE**: only True or False are acceptable inputs)
 5. BERI protocol observations directory: $beri_files -- e.g., "beri_files" (put it in quotes)
 6. Sampling frequency per second: $Fs  --  e.g., 4 (4 default for E4 sensors, integer, units = samples per second)
@@ -80,14 +86,14 @@ Example commands:
 - phasic component of skin conductance (line)
 - tonic component of skin conductance (line)
 
-*The 3 above figures are only made for one student at a time - i.e., there is no averaging. They are snapshots of one sensor's data.*
+*The 3 above figures are only made for one sensor at a time - i.e., there is no averaging. They are snapshots of one sensor's data.*
 
 - bar chart of mean percent difference between activity and baseline skin conductance
 - bar chart of mean percent difference between activity and baseline skin conductance, outliers removed
 - bar chart of median percent difference between activity and baseline skin conductance
 - histogram of mean percent difference between activity and baseline skin conductance
 
-*The above figures are averages across all students.*
+*The above figures are averages across all sensors.*
 
 
 4 .csv files with statistics:
@@ -99,7 +105,8 @@ Example commands:
 
 
 # Common sources of error:
-- Incorrect working directory. working_dir must be the directory where all input data are stored.
-- Omitting user inputs. All 11 of the user-defined inputs must be included when calling the script.
+- Incorrect working directory. working_dir must be the directory where all input data are stored, even if your script is not stored there.
+- Omitting user inputs. All 12 of the user-defined inputs must be included when calling the script.
 - Incorrect user inputs. All Boolean inputs can only be True/False.
 - Timing format is incorrect. When recording the activity timing in a spreadsheet, the format must always be YYYYMMDDHHMMSS. If the day and month columns are switched, the month column may end up out of range (e.g., if the date is September 28 and the month/day columns are switched then there will be an error because there are not 28 months).
+- Not including "Baseline" as an activity if using the continuous baseline. The separate and entire_semester baselines do not need to read "Baseline" as an activity in the timing spreadsheet.
