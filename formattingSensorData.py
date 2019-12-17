@@ -222,6 +222,12 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df, EDA_da
                                                                                          str(row['Second End']).zfill(2), "%Y%m%d%H%M%S"), axis=1)
 
     x_out = xcel.apply(lambda row : EDA_data_df[(EDA_data_df['timestamp']>=row['datetime_start'])&(EDA_data_df['timestamp']<row['datetime_end'])].assign(activity=row['Activity']), axis=1)
+    print("x_out:")
+    print(x_out)
+    print(" ")
+    print("EDA_data_df:")
+    print(EDA_data_df)
+    print(" ")
     activity_mean = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].mean()
     activity_stddev = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].std()
     activity_stderr = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].sem()
@@ -237,16 +243,19 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df, EDA_da
     xcel_activities['datetime_start'] = pd.to_datetime(xcel_activities['datetime_start'])
     xcel_activities['datetime_end'] = pd.to_datetime(xcel_activities['datetime_end'])
     EDA_data_df['timestamp'] = pd.to_datetime(EDA_data_df['timestamp'])
+    #print(EDA_data_df['timestamp'])
 
-    act_start = xcel_activities.loc[['Class discussion','Clicker question','Discussion after clicker question','Exam reference', \
-        'Homework/Concept review','Instructor answers question','Instructor asks question','Joke/Story','Learning Goals Summary', \
-        'Lecture','One-minute paper','Own research','Polar Bear reference/picture','Provide example/metaphor','Show equation', \
-        'Show graph/image/map','Video'], 'datetime_start']
+    act_start = xcel_activities['datetime_start']
+    act_end = xcel_activities['datetime_end']
 
-    act_end = xcel_activities.loc[['Class discussion','Clicker question','Discussion after clicker question','Exam reference', \
-        'Homework/Concept review','Instructor answers question','Instructor asks question','Joke/Story','Learning Goals Summary', \
-        'Lecture','One-minute paper','Own research','Polar Bear reference/picture','Provide example/metaphor','Show equation', \
-        'Show graph/image/map','Video'], 'datetime_end']
+    # act_start = xcel_activities.loc[['Class discussion','Clicker question','Discussion after clicker question','Exam reference', \
+    #     'Homework/Concept review','Instructor answers question','Instructor asks question','Joke/Story','Learning Goals Summary', \
+    #     'Lecture','One-minute paper','Own research','Polar Bear reference/picture','Provide example/metaphor','Show equation', \
+    #     'Show graph/image/map','Video'], 'datetime_start']
+    # act_end = xcel_activities.loc[['Class discussion','Clicker question','Discussion after clicker question','Exam reference', \
+    #     'Homework/Concept review','Instructor answers question','Instructor asks question','Joke/Story','Learning Goals Summary', \
+    #     'Lecture','One-minute paper','Own research','Polar Bear reference/picture','Provide example/metaphor','Show equation', \
+    #     'Show graph/image/map','Video'], 'datetime_end']
 
     # act_start = xcel_activities.loc[['Active learning','Class management','Lecture','Lecture - prompting student attention'],'datetime_start']
     # act_end = xcel_activities.loc[['Active learning','Class management','Lecture','Lecture - prompting student attention'],'datetime_end']
@@ -300,22 +309,17 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df, EDA_da
 
 
 def reduce_function(row, data_reduce, student_overview):
-    """
-    Input:
-    """
     if not isinstance(row.name, pd.Timestamp):
         pass
-
     seat_num = int(row.index[0].split('-')[1])
     out = np.NaN
-
     if row[(row.index[row.index.str.contains('-E|-W|-L', regex=True)])].any():
         out = True
     elif row[(row.index[row.index.str.contains('-D|-U|-S', regex=True)])].any():
         out = False
-
     if len(student_overview.loc[str(row.name.normalize())][student_overview.loc[str(row.name.normalize())] == seat_num].index) > 0:
         data_reduce.at[str(row.name), student_overview.loc[str(row.name.normalize())][student_overview.loc[str(row.name.normalize())] == seat_num].index[0]] = out
+
 
 def get_beri_protocol(working_dir, beri_files, beri_exists):
     """
@@ -447,9 +451,9 @@ def get_grades(working_dir, grade_files, EDA_by_sensor):
 
 
 def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_baseline, continuous_baseline, beri_exists, EDA_by_sensor, grades_exist):
-#def plot_results(obs_EDA, phasic, tonic, Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline):
+#def plot_results(obs_EDA, phasic, tonic, Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline, continuous_baseline, beri_exists, EDA_by_sensor, grades_exist):
     """
-    Input: for plotting an individual's data - skin conductance dataframe (obs_EDA), phasic/tonic components
+    Input: for plotting an individual's data - skin conductance dataframe (EDA_data_df), phasic/tonic components
     Sampling frequency per second (Fs), preferred figure resolution (pref_dpi)
     For plotting average data, what type of baseline (separate, continuous, neither), whether the BERI beri_protocol
     was used, and the functions that process skin conductance data.
@@ -599,11 +603,14 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
         print(" ")
 
 
-# If baseline method = continous (part of class):
+# If baseline method = continous (part of class/study):
     elif continuous_baseline == True :
         print("Continuous baseline")
         print(" ")
         if beri_exists == False:
+            print("activity_mean:")
+            print(activity_mean)
+            print(" ")
             baselines = activity_mean[activity_mean['activity'] == "Baseline"][["file_name", "skin_conduct"]]
             baselines = baselines.rename(columns = {"skin_conduct":"skin_conduct_baseline"})
             print("baselines:")
@@ -912,9 +919,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
             fig10.savefig(os.path.join(output_dir, 'activity_means_no_outliers_entire_semester_BL_hist.pdf'), dpi = pref_dpi, bbox_inches='tight')
         pl.close(fig10)
 
-        print("activity_mean_merged:")
-        print(activity_mean_merged)
-        print(" ")
+
         activity_stats = activity_mean_merged
         return statistics_output, keywords, activity_stats, None
 
@@ -1046,7 +1051,7 @@ def save_output_csv(statistics_output, output_dir, keywords, activity_stats, ber
 
 
 
-def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_files, beri_exists, Fs, delta, pref_dpi, separate_baseline, continuous_baseline, grade_files, grades_exist):
+def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_exists, beri_files, Fs, delta, pref_dpi, separate_baseline, continuous_baseline, grade_files, grades_exist):
     """
     Goal: Format all data downloaded from empatica website, plot data, and save statistics
 
@@ -1112,8 +1117,6 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_files, beri_e
 
     beri_df, beri_data = get_beri_protocol(working_dir, beri_files, beri_exists)
     EDA_data_df['beri_obs'] = np.nan
-    # EDA_data_df_to_save = EDA_data_df.drop(['file_name'], axis=1)
-    # EDA_data_df_to_save.to_csv('EDA_out_no_beri.csv')
 
 
     def eda_beri_merge(row, beri_df):
@@ -1158,7 +1161,7 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_files, beri_e
     #cvx_first = EDA_data_df.groupby(level=0).first()
 
     #statistics_output, keywords, activity_stats, beri_df = plot_results(cvx_first['skin_conduct'], cvx_first['phasic'], cvx_first['tonic'], Fs, pref_dpi, EDA_data_df, output_dir, separate_baseline)
-    statistics_output, keywords, activity_stats, beri_df = plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_baseline, continuous_baseline, beri_exists, EDA_by_sensor)
+    statistics_output, keywords, activity_stats, beri_df = plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_baseline, continuous_baseline, beri_exists, EDA_by_sensor, grades_exist)
 
     if grades_exist == True:
         sep_grades_df, clicker_q_df, grades = get_grades(working_dir, grade_files, EDA_by_sensor)
@@ -1169,5 +1172,5 @@ def format_and_plot_data(working_dir, timing_xcel, sheetname, beri_files, beri_e
 
 
 if __name__=='__main__':
-    working_dir, timing_xcel, sheetname, beri_files, beri_exists, Fs, delta, pref_dpi, separate_baseline, continuous_baseline, grade_files, grades_exist = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8], sys.argv[9], sys.argv[10], sys.argv[11], sys.argv[12]
-    format_and_plot_data(working_dir, timing_xcel, sheetname, beri_files, beri_exists, Fs, delta, pref_dpi, separate_baseline, continuous_baseline, grade_files, grades_exist)
+    working_dir, timing_xcel, sheetname, beri_exists, beri_files, Fs, delta, pref_dpi, separate_baseline, continuous_baseline, grade_files, grades_exist = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4], sys.argv[5], sys.argv[6], sys.argv[7], sys.argv[8], sys.argv[9], sys.argv[10], sys.argv[11], sys.argv[12]
+    format_and_plot_data(working_dir, timing_xcel, sheetname, beri_exists, beri_files, Fs, delta, pref_dpi, separate_baseline, continuous_baseline, grade_files, grades_exist)
