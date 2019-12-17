@@ -236,6 +236,13 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df, EDA_da
     xcel_activities = xcel_activities.reset_index().set_index('Activity')
     xcel_activities['datetime_start'] = pd.to_datetime(xcel_activities['datetime_start'])
     xcel_activities['datetime_end'] = pd.to_datetime(xcel_activities['datetime_end'])
+    # idx = xcel_activities.index
+    # print(idx)
+    # if idx.contains('Exam') == True:
+    #     xcel_activities = xcel_activities[~idx.contains("Exam")]
+    #
+    # print("xcel_activities:")
+    # print(xcel_activities)
     EDA_data_df['timestamp'] = pd.to_datetime(EDA_data_df['timestamp'])
 
     act_start = xcel_activities['datetime_start']
@@ -348,7 +355,6 @@ def get_beri_protocol(working_dir, beri_files, beri_exists):
                     data_grouped.apply(lambda df: df.apply(reduce_function, axis=1, data_reduce=data_reduce, student_overview=student_overview))
                     data_reduce = data_reduce.resample('250L', label='right', closed='right').nearest().ffill()
                     beri_df.append(data_reduce)
-
 
                     ########
                     data = pd.read_csv(filename, parse_dates=[['class_date','time']])
@@ -503,7 +509,6 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
         print(activity_mean_beri)
         beri_df, beri_data = get_beri_protocol(working_dir, beri_files, beri_exists)
         beri_data.to_csv("beri_obs_total.csv")
-        print("got beri_data")
 
     else:
         activity_mean, activity_stddev, activity_stderr, total_time, total_time_seconds, EDA_data_df, baseline_activities = get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df, EDA_data_df2, beri_exists)
@@ -659,7 +664,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
             percent_diff_medians_no_outliers_beri = activity_mean_merged_beri.groupby(['activity']).median()
             percent_diff_medians_no_outliers_beri = percent_diff_medians_no_outliers_beri['% diff']
 
-            total_percent_diff = activity_mean_merged.groupby(['sensor_ids']).mean()
+            total_percent_diff = activity_mean_merged_beri.groupby(['sensor_ids']).mean()
             total_percent_diff = total_percent_diff['% diff']
 
             if grades_exist == True:
@@ -924,7 +929,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
         pl.scatter(range(0,len(beri_data['class_subject_code'])), beri_data['total_eng'], c = 'k', marker='o', s=3, label='# students engaged')
         pl.scatter(range(0,len(beri_data['class_subject_code'])), beri_data['total_diseng'], c = 'r', marker='v', s=3, label="# students disengaged")
         pl.yticks(fontsize=8)
-        pl.legend(loc='left')
+        pl.legend(loc='upper left')
         pl.ylabel('# students')
         pl.xlabel('Observation')
         pl.ylim(0,20)
