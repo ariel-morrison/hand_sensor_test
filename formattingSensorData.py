@@ -222,12 +222,6 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df, EDA_da
                                                                                          str(row['Second End']).zfill(2), "%Y%m%d%H%M%S"), axis=1)
 
     x_out = xcel.apply(lambda row : EDA_data_df[(EDA_data_df['timestamp']>=row['datetime_start'])&(EDA_data_df['timestamp']<row['datetime_end'])].assign(activity=row['Activity']), axis=1)
-    print("x_out:")
-    print(x_out)
-    print(" ")
-    print("EDA_data_df:")
-    print(EDA_data_df)
-    print(" ")
     activity_mean = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].mean()
     activity_stddev = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].std()
     activity_stderr = pd.concat(list(x_out)).reset_index().groupby(['level_0', 'activity'])['skin_conduct'].sem()
@@ -243,22 +237,9 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df, EDA_da
     xcel_activities['datetime_start'] = pd.to_datetime(xcel_activities['datetime_start'])
     xcel_activities['datetime_end'] = pd.to_datetime(xcel_activities['datetime_end'])
     EDA_data_df['timestamp'] = pd.to_datetime(EDA_data_df['timestamp'])
-    #print(EDA_data_df['timestamp'])
 
     act_start = xcel_activities['datetime_start']
     act_end = xcel_activities['datetime_end']
-
-    # act_start = xcel_activities.loc[['Class discussion','Clicker question','Discussion after clicker question','Exam reference', \
-    #     'Homework/Concept review','Instructor answers question','Instructor asks question','Joke/Story','Learning Goals Summary', \
-    #     'Lecture','One-minute paper','Own research','Polar Bear reference/picture','Provide example/metaphor','Show equation', \
-    #     'Show graph/image/map','Video'], 'datetime_start']
-    # act_end = xcel_activities.loc[['Class discussion','Clicker question','Discussion after clicker question','Exam reference', \
-    #     'Homework/Concept review','Instructor answers question','Instructor asks question','Joke/Story','Learning Goals Summary', \
-    #     'Lecture','One-minute paper','Own research','Polar Bear reference/picture','Provide example/metaphor','Show equation', \
-    #     'Show graph/image/map','Video'], 'datetime_end']
-
-    # act_start = xcel_activities.loc[['Active learning','Class management','Lecture','Lecture - prompting student attention'],'datetime_start']
-    # act_end = xcel_activities.loc[['Active learning','Class management','Lecture','Lecture - prompting student attention'],'datetime_end']
 
 
     if beri_exists == False:
@@ -288,7 +269,7 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df, EDA_da
     xcel['total_time'] = pd.to_datetime(xcel['datetime_end'], infer_datetime_format=True) - pd.to_datetime(xcel['datetime_start'], infer_datetime_format=True)
     total_time = xcel[['Activity','total_time']]
     total_time = total_time.set_index('Activity')
-    total_time = total_time.drop(['Total'], axis=0)
+    #total_time = total_time.drop(['Total'], axis=0)
     if (total_time.index == 'Baseline').any() == True:
         total_time = total_time.drop(['Baseline'], axis=0)
     total_time = total_time.groupby(['Activity'])['total_time'].sum()
@@ -297,7 +278,7 @@ def get_activity_timing(working_dir, timing_xcel, sheetname, EDA_data_df, EDA_da
     xcel['total_time_seconds'] = xcel['total_time'].dt.total_seconds()
     total_time_seconds = xcel[['Activity', 'total_time_seconds']]
     total_time_seconds = total_time_seconds.set_index('Activity')
-    total_time_seconds = total_time_seconds.drop(['Total'], axis=0)
+    #total_time_seconds = total_time_seconds.drop(['Total'], axis=0)
     if (total_time_seconds.index == 'Baseline').any() == True:
         total_time_seconds = total_time_seconds.drop(['Baseline'], axis=0)
     total_time_seconds = total_time_seconds.groupby(['Activity'])['total_time_seconds'].sum()
@@ -521,7 +502,7 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
         print("activity_mean_beri:")
         print(activity_mean_beri)
         beri_df, beri_data = get_beri_protocol(working_dir, beri_files, beri_exists)
-        beri_data.to_csv("beri_obs_total_fall_2018.csv")
+        beri_data.to_csv("beri_obs_total.csv")
         print("got beri_data")
 
     else:
@@ -629,18 +610,19 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
             activity_mean_merged = activity_mean_merged[~activity_mean_merged['outlier']]
 
             percent_diff_means_no_outliers = activity_mean_merged[~activity_mean_merged['outlier']].groupby(['activity']).mean()
-            percent_diff_means_no_outliers = percent_diff_means_no_outliers['% diff'].drop(['Total'], axis=0)
+            percent_diff_means_no_outliers = percent_diff_means_no_outliers['% diff']
 
             # mean/median percent difference between baseline and activity
             activity_mean_merged = activity_mean_merged.drop(['file_name', 'outlier'], axis=1)
             percent_diff_stderr_no_outliers = activity_mean_merged.groupby(['activity']).sem()
-            percent_diff_stderr_no_outliers = percent_diff_stderr_no_outliers['% diff'].drop(['Total'], axis=0)
+            percent_diff_stderr_no_outliers = percent_diff_stderr_no_outliers['% diff']
             percent_diff_stddev_no_outliers = activity_mean_merged.groupby(['activity']).std()
-            percent_diff_stddev_no_outliers = percent_diff_stddev_no_outliers['% diff'].drop(['Total'], axis=0)
+            percent_diff_stddev_no_outliers = percent_diff_stddev_no_outliers['% diff']
             percent_diff_medians_no_outliers = activity_mean_merged.groupby(['activity']).median()
-            percent_diff_medians_no_outliers = percent_diff_medians_no_outliers['% diff'].drop(['Total'], axis=0)
+            percent_diff_medians_no_outliers = percent_diff_medians_no_outliers['% diff']
 
-            total_percent_diff = activity_mean_merged.loc[activity_mean_merged.activity == 'Total'].groupby(['sensor_ids']).mean()
+            total_percent_diff = activity_mean_merged.groupby(['sensor_ids']).mean()
+            total_percent_diff = total_percent_diff['% diff']
 
             if grades_exist == True:
                 grades_merged = grades.merge(total_percent_diff, left_on='sensor_ids', right_on='sensor_ids').replace([np.inf, -np.inf], np.nan).dropna()
@@ -666,18 +648,19 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
             activity_mean_merged_beri = activity_mean_merged_beri[~activity_mean_merged_beri['outlier']]
 
             percent_diff_means_no_outliers_beri = activity_mean_merged_beri[~activity_mean_merged_beri['outlier']].groupby(['activity']).mean()
-            percent_diff_means_no_outliers_beri = percent_diff_means_no_outliers_beri['% diff'].drop(['Total'], axis=0)
+            percent_diff_means_no_outliers_beri = percent_diff_means_no_outliers_beri['% diff']
 
             activity_mean_merged_beri = activity_mean_merged_beri.drop(['file_name', 'outlier'], axis=1)
 
             percent_diff_stderr_no_outliers_beri = activity_mean_merged_beri.groupby(['activity']).sem()
-            percent_diff_stderr_no_outliers_beri = percent_diff_stderr_no_outliers_beri['% diff'].drop(['Total'], axis=0)
+            percent_diff_stderr_no_outliers_beri = percent_diff_stderr_no_outliers_beri['% diff']
             percent_diff_stddev_no_outliers_beri = activity_mean_merged_beri.groupby(['activity']).std()
-            percent_diff_stddev_no_outliers_beri = percent_diff_stddev_no_outliers_beri['% diff'].drop(['Total'], axis=0)
+            percent_diff_stddev_no_outliers_beri = percent_diff_stddev_no_outliers_beri['% diff']
             percent_diff_medians_no_outliers_beri = activity_mean_merged_beri.groupby(['activity']).median()
-            percent_diff_medians_no_outliers_beri = percent_diff_medians_no_outliers_beri['% diff'].drop(['Total'], axis=0)
+            percent_diff_medians_no_outliers_beri = percent_diff_medians_no_outliers_beri['% diff']
 
-            total_percent_diff = activity_mean_merged_beri.loc[activity_mean_merged_beri.activity == 'Total'].groupby(['sensor_ids']).mean()
+            total_percent_diff = activity_mean_merged.groupby(['sensor_ids']).mean()
+            total_percent_diff = total_percent_diff['% diff']
 
             if grades_exist == True:
                 grades_merged_beri = grades.merge(total_percent_diff, left_on='sensor_ids', right_on='sensor_ids').replace([np.inf, -np.inf], np.nan).dropna()
@@ -703,18 +686,19 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
             activity_mean_merged = activity_mean_merged[~activity_mean_merged['outlier']]
 
             percent_diff_means_no_outliers = activity_mean_merged[~activity_mean_merged['outlier']].groupby(['activity']).mean()
-            percent_diff_means_no_outliers = percent_diff_means_no_outliers['% diff'].drop(['Total'], axis=0)
+            percent_diff_means_no_outliers = percent_diff_means_no_outliers['% diff']
 
             # mean/median percent difference between baseline and activity
             activity_mean_merged = activity_mean_merged.drop(['file_name', 'outlier'], axis=1)
             percent_diff_stderr_no_outliers = activity_mean_merged.groupby(['activity']).sem()
-            percent_diff_stderr_no_outliers = percent_diff_stderr_no_outliers['% diff'].drop(['Total'], axis=0)
+            percent_diff_stderr_no_outliers = percent_diff_stderr_no_outliers['% diff']
             percent_diff_stddev_no_outliers = activity_mean_merged.groupby(['activity']).std()
-            percent_diff_stddev_no_outliers = percent_diff_stddev_no_outliers['% diff'].drop(['Total'], axis=0)
+            percent_diff_stddev_no_outliers = percent_diff_stddev_no_outliers['% diff']
             percent_diff_medians_no_outliers = activity_mean_merged.groupby(['activity']).median()
-            percent_diff_medians_no_outliers = percent_diff_medians_no_outliers['% diff'].drop(['Total'], axis=0)
+            percent_diff_medians_no_outliers = percent_diff_medians_no_outliers['% diff']
 
-            total_percent_diff = activity_mean_merged.loc[activity_mean_merged.activity == 'Total'].groupby(['sensor_ids']).mean()
+            total_percent_diff = activity_mean_merged.groupby(['sensor_ids']).mean()
+            total_percent_diff = total_percent_diff['% diff']
 
             if grades_exist == True:
                 grades_merged = grades.merge(total_percent_diff, left_on='sensor_ids', right_on='sensor_ids').replace([np.inf, -np.inf], np.nan).dropna()
@@ -739,18 +723,19 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
             activity_mean_merged_beri = activity_mean_merged_beri[~activity_mean_merged_beri['outlier']]
 
             percent_diff_means_no_outliers_beri = activity_mean_merged_beri[~activity_mean_merged_beri['outlier']].groupby(['activity']).mean()
-            percent_diff_means_no_outliers_beri = percent_diff_means_no_outliers_beri['% diff'].drop(['Total'], axis=0)
+            percent_diff_means_no_outliers_beri = percent_diff_means_no_outliers_beri['% diff']
 
             activity_mean_merged_beri = activity_mean_merged_beri.drop(['file_name', 'outlier'], axis=1)
 
             percent_diff_stderr_no_outliers_beri = activity_mean_merged_beri.groupby(['activity']).sem()
-            percent_diff_stderr_no_outliers_beri = percent_diff_stderr_no_outliers_beri['% diff'].drop(['Total'], axis=0)
+            percent_diff_stderr_no_outliers_beri = percent_diff_stderr_no_outliers_beri['% diff']
             percent_diff_stddev_no_outliers_beri = activity_mean_merged_beri.groupby(['activity']).std()
-            percent_diff_stddev_no_outliers_beri = percent_diff_stddev_no_outliers_beri['% diff'].drop(['Total'], axis=0)
+            percent_diff_stddev_no_outliers_beri = percent_diff_stddev_no_outliers_beri['% diff']
             percent_diff_medians_no_outliers_beri = activity_mean_merged_beri.groupby(['activity']).median()
-            percent_diff_medians_no_outliers_beri = percent_diff_medians_no_outliers_beri['% diff'].drop(['Total'], axis=0)
+            percent_diff_medians_no_outliers_beri = percent_diff_medians_no_outliers_beri['% diff']
 
-            total_percent_diff = activity_mean_merged_beri.loc[activity_mean_merged_beri.activity == 'Total'].groupby(['sensor_ids']).mean()
+            total_percent_diff = activity_mean_merged.groupby(['sensor_ids']).mean()
+            total_percent_diff = total_percent_diff['% diff']
 
             if grades_exist == True:
                 grades_merged_beri = grades.merge(total_percent_diff, left_on='sensor_ids', right_on='sensor_ids').replace([np.inf, -np.inf], np.nan).dropna()
@@ -867,6 +852,8 @@ def plot_results(Fs, pref_dpi, EDA_data_df, EDA_data_df2, output_dir, separate_b
 
         # mean percent difference, no outliers
         fig7, ax = pl.subplots( nrows=1, ncols=1 )
+        print("percent_diff_means_no_outliers:")
+        print(percent_diff_means_no_outliers)
         pl.bar(list(y_pos.keys()), percent_diff_means_no_outliers, yerr=percent_diff_stderr_no_outliers, error_kw=dict(lw=0.65, capsize=2, capthick=0.55), align='center', color=[0.62,0.07,0.41], alpha=1)
         pl.xticks(list(y_pos.keys()), list(y_pos.values()), rotation=90, fontsize=6)
         pl.ylim(min((percent_diff_means_no_outliers-percent_diff_stderr_no_outliers-10)), max(percent_diff_means_no_outliers+percent_diff_stderr_no_outliers+15))
