@@ -73,8 +73,9 @@ Example commands:
 6. Sampling frequency per second: $Fs  --  e.g., 4 (4 default for E4 sensors, integer, units = samples per second)
 7. Time interval of recording: $delta  --  e.g., 0.25 (0.25 default for E4 sensors, float, units = samples recorded every 0.25 seconds)
 8. Preferred dpi (resolution) for saved .pdf figures: $pref_dpi -- e.g., 500, 1000, 2000 (900 is a good readable resolution)
-9. Separate baseline recording? Baselines are separate if they are read in from a different file and then applied to one or more student records. True or False: $separate_baseline -- e.g., True (**NOTE**: only True or False are acceptable inputs. If baselines are recorded separately, must be stored in a subdirectory of the working directory called "calibration")
+9. Separate baseline recording? Baselines are separate if they are read in from a different file and then applied to one or more student records. True or False: $separate_baseline -- e.g., True (**NOTE**: If baselines are recorded separately, must be stored in a subdirectory of the working directory called "calibration")
 10. Continuous baseline recording? Baselines are continuous if they are part of the same skin conductance record to which they are being compared. For example, if the first 3 minutes of the skin conductance record are the 'baseline,' then choose True for the continuous baseline. True or False: $continuous_baseline -- e.g., False
+- **NOTE**: Baseline will default to an average over all the study activities if both separate_baseline and continuous_baseline are False.  
 11. Are you using grades in your analysis? True or false: $ grades_exist -- e.g., True (**NOTE**: only True or False are acceptable inputs)
 12. Spreadsheet where grades are stored: $grade_files -- e.g., "ENV1000_grades.xlsx" (put it in quotes)
 
