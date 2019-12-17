@@ -1,22 +1,9 @@
 
 # Repository for hand sensor data analysis
 ### Written by Ariel Morrison, University of Colorado/Cooperative Institute for Research in Environmental Sciences, ariel dot morrison at colorado dot edu
+### Reference for controlled setting: Morrison, A.L. et al. (2019),
 
 *Description: This code performs a simple continuous decomposition analysis on electrodermal activity data downloaded from an Empatica E4 sensor.*
-
-**User-defined inputs:**
-1. Working directory, where all downloaded zip archives are stored and where all output will be saved: $working_dir  --  e.g., "/Users/amorrison/Projects/hand_sensor_test/empaticadata" (put it in quotes)
-2. Spreadsheet with component timing, including file extension: $timing_xcel -- e.g., study_timing.xlsx, study_timing.xls (no quotes, needs the file extension)
-3. Sheet name in $timing_xcel: $sheetname -- e.g., exp_session (no quotes)
-4. Are you using BERI observations? True or false: $beri_exists -- e.g., True (**NOTE**: only True or False are acceptable inputs)
-5. BERI protocol observations directory: $beri_files -- e.g., "beri_files" (put it in quotes)
-6. Sampling frequency per second: $Fs  --  e.g., 4 (4 default for E4 sensors, integer, units = samples per second)
-7. Time interval of recording: $delta  --  e.g., 0.25 (0.25 default for E4 sensors, float, units = samples recorded every 0.25 seconds)
-8. Preferred dpi (resolution) for saved .pdf figures: $pref_dpi -- e.g., 500, 1000, 2000 (900 is a good readable resolution)
-9. Separate baseline recording? Baselines are separate if they are read in from a different file and then applied to one or more student records. True or False: $separate_baseline -- e.g., True (**NOTE**: only True or False are acceptable inputs. If baselines are recorded separately, must be stored in a subdirectory of the working directory called "calibration")
-10. Continuous baseline recording? Baselines are continuous if they are part of the same skin conductance record to which they are being compared. For example, if the first 3 minutes of the skin conductance record are the 'baseline,' then choose True for the continuous baseline. True or False: $continuous_baseline -- e.g., False
-11. Are you using grades in your analysis? True or false: $ grades_exist -- e.g., True (**NOTE**: only True or False are acceptable inputs)
-12. Spreadsheet where grades are stored: $grade_files -- e.g., "ENV1000_grades.xlsx" (put it in quotes)
 
 
 **To RUN:**
@@ -61,10 +48,26 @@ Note: If a package needs to be uninstalled before the requirements can be instal
 `python formattingSensorData.py $working_dir $timing_xcel $sheetname $beri_exists $beri_files $FS $delta $pref_dpi $separate_baseline $continuous_baseline $grade_files $grades_exist`
 
 
-Example command:
+Example commands:
 
-`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/1060data" ATOC1060TimingComponents.xlsx total_timing True "beri_files" 4 0.25 800 False True "ATOC-1060-2018_Grades.xlsx" True`
+- Running with BERI protocol, continuous baseline, and grades
+`python formattingSensorData.py "/Users/amorrison/Projects/hand_sensor_test/1060data" ATOC1060TimingComponents.xlsx total_timing_with_baseline True "beri_files" 4 0.25 800 False True "ATOC-1060-2018_Grades.xlsx" True`
+- Running with BERI protocol, entire semester baseline, and grades
+`python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/ATOC1060_EducationResearch/hand_sensor_test-master/1060data" ATOC1060TimingComponents.xlsx total_timing True "beri_files" 4 0.25 800 False False "ATOC-1060-2018_Grades.xlsx" True`
 
+**User-defined inputs:**
+1. Working directory, where all downloaded zip archives are stored and where all output will be saved: $working_dir  --  e.g., "/Users/amorrison/Projects/hand_sensor_test/empaticadata" (put it in quotes)
+2. Spreadsheet with component timing, including file extension: $timing_xcel -- e.g., study_timing.xlsx, study_timing.xls (no quotes, needs the file extension)
+3. Sheet name in $timing_xcel: $sheetname -- e.g., exp_session (no quotes)
+4. Are you using BERI observations? True or false: $beri_exists -- e.g., True (**NOTE**: only True or False are acceptable inputs)
+5. BERI protocol observations directory: $beri_files -- e.g., "beri_files" (put it in quotes)
+6. Sampling frequency per second: $Fs  --  e.g., 4 (4 default for E4 sensors, integer, units = samples per second)
+7. Time interval of recording: $delta  --  e.g., 0.25 (0.25 default for E4 sensors, float, units = samples recorded every 0.25 seconds)
+8. Preferred dpi (resolution) for saved .pdf figures: $pref_dpi -- e.g., 500, 1000, 2000 (900 is a good readable resolution)
+9. Separate baseline recording? Baselines are separate if they are read in from a different file and then applied to one or more student records. True or False: $separate_baseline -- e.g., True (**NOTE**: only True or False are acceptable inputs. If baselines are recorded separately, must be stored in a subdirectory of the working directory called "calibration")
+10. Continuous baseline recording? Baselines are continuous if they are part of the same skin conductance record to which they are being compared. For example, if the first 3 minutes of the skin conductance record are the 'baseline,' then choose True for the continuous baseline. True or False: $continuous_baseline -- e.g., False
+11. Are you using grades in your analysis? True or false: $ grades_exist -- e.g., True (**NOTE**: only True or False are acceptable inputs)
+12. Spreadsheet where grades are stored: $grade_files -- e.g., "ENV1000_grades.xlsx" (put it in quotes)
 
 
 **Files saved to output directory:**
