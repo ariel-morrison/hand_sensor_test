@@ -4,3 +4,4 @@ empaticadata/*.csv
 empaticadata/*.png
 output_dir/
 **/*.ipynb*
+.Rproj.user
