@@ -6,6 +6,8 @@ Reference for controlled setting: Morrison, A.L. et al. (2019), Quantifying stud
 
 *Description: This script analyzes skin conductance data from Empatica E4 hand sensors. It reads and unzips zip archives downloaded from the Empatica website, performs a simple continuous decomposition analysis, calculates the mean percent difference in skin conductance between an activity and a person's baseline, and saves the analyzed data as a .csv output.*
 
+**To download the code:**
+`git clone https://github.com/armo1216/hand_sensor_test`
 
 **To RUN:**
 
@@ -60,7 +62,7 @@ Example commands:
 - Running with BERI protocol, entire semester baseline, and grades:
 `python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/ATOC1060_EducationResearch/hand_sensor_test-master/1060data" ATOC1060TimingComponents.xlsx total_timing True "beri_files" 4 0.25 800 False False "ATOC-1060-2018_Grades.xlsx" True`
 
-- Running witout BERI protocol, continous baseline, without grades:
+- Running without BERI protocol, continuous baseline, without grades:
 `python formattingSensorData.py "/Users/jkay/Documents/jenkay/jek_research/ATOC1060_EducationResearch/hand_sensor_test-master/1060data" ATOC1060TimingComponents.xlsx total_timing_with_baseline False "no_beri" 4 0.25 800 False True "no_grades" False`
 
 
@@ -76,8 +78,8 @@ Example commands:
 9. Separate baseline recording? Baselines are separate if they are read in from a different file and then applied to one or more student records. True or False: $separate_baseline -- e.g., True (**NOTE**: If baselines are recorded separately, must be stored in a subdirectory of the working directory called "calibration")
 10. Continuous baseline recording? Baselines are continuous if they are part of the same skin conductance record to which they are being compared. For example, if the first 3 minutes of the skin conductance record are the 'baseline,' then choose True for the continuous baseline. True or False: $continuous_baseline -- e.g., False
 - **NOTE**: Baseline will default to an average over all the study activities if both separate_baseline and continuous_baseline are False.  
-11. Are you using grades in your analysis? True or false: $ grades_exist -- e.g., True (**NOTE**: only True or False are acceptable inputs)
-12. Spreadsheet where grades are stored: $grade_files -- e.g., "ENV1000_grades.xlsx" (put it in quotes)
+11. Spreadsheet where grades are stored: $grade_files -- e.g., "ENV1000_grades.xlsx" (put it in quotes)
+12. Are you using grades in your analysis? True or false: $ grades_exist -- e.g., True (**NOTE**: only True or False are acceptable inputs)
 
 
 **Files saved to output directory:**
