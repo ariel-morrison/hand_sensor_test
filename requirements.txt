@@ -1,4 +1,4 @@
-cvxopt==1.2.3
+cvxopt==1.2.7
 cycler==0.10.0
 DateTime==4.3
 docutils==0.15.2
